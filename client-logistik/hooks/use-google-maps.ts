@@ -27,12 +27,14 @@ export const useGoogleMaps = () => {
 
     const script = document.createElement('script');
     script.id = 'google-maps-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly&language=id&region=ID`;
+    // Added loading=async and callback=console.log (or any function) to satisfy performance warnings
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly&language=id&region=ID&loading=async&callback=self.googleMapsCallback`;
     script.async = true;
     script.defer = true;
 
-    script.onload = () => {
-      console.log("[GMaps] Script loaded via manual injection.");
+    // Define the callback globally to avoid "callback is not a function" error
+    (window as any).googleMapsCallback = () => {
+      console.log("[GMaps] Script loaded via async callback.");
       setIsLoaded(true);
     };
 
