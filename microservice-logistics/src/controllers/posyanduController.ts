@@ -50,3 +50,16 @@ export const syncPosyandu = async (req: Request, res: Response): Promise<void> =
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+interface AuthRequest extends Request {
+  user?: any;
+}
+
+export const getAssignedPosyandus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const posyandus = await PosyanduRegistry.find({ assigned_hub_id: req.user.id });
+    res.json(posyandus);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

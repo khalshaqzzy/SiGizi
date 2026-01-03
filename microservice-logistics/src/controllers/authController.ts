@@ -86,3 +86,55 @@ export const loginProvider = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+interface AuthRequest extends Request {
+  user?: any;
+}
+
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, address, phone } = req.body;
+    let { lat, lng } = req.body;
+
+    const user = await LogisticsProvider.findById(req.user.id);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    if (name) user.name = name;
+    
+    // If address changed, try to geocode if lat/lng missing
+    if (address && address !== user.address) {
+      user.address = address;
+      if (!lat || !lng) {
+        const geoResult = await geocodeAddress(address);
+        if (geoResult) {
+          lat = geoResult.lat;
+          lng = geoResult.lng;
+        }
+      }
+    }
+
+    if (lat && lng) {
+      user.location = {
+        type: 'Point',
+        coordinates: [lng, lat]
+      };
+    }
+
+    await user.save();
+
+    // Trigger re-assignment if location changed
+    if (lat && lng) {
+       reassignAllPosyandus();
+    }
+
+    res.json({ 
+      message: 'Profile updated', 
+      user: { id: user._id, name: user.name, address: user.address, location: user.location } 
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

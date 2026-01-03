@@ -5,6 +5,7 @@ export interface IInventoryItem {
   sku: string;
   quantity: number;
   unit: string;
+  min_stock: number;
 }
 
 export interface ILogisticsProvider extends Document {
@@ -24,7 +25,8 @@ const InventorySchema = new Schema({
   name: { type: String, required: true },
   sku: { type: String, required: true },
   quantity: { type: Number, default: 0 },
-  unit: { type: String, default: 'pcs' }
+  unit: { type: String, default: 'pcs' },
+  min_stock: { type: Number, default: 10 }
 });
 
 const LogisticsProviderSchema: Schema = new Schema({

@@ -98,8 +98,8 @@ export const assignDriver = async (req: AuthRequest, res: Response): Promise<voi
         res.status(404).json({ message: 'Driver not found' });
         return;
     }
-    if (driver.status === 'BUSY') {
-        res.status(400).json({ message: `Driver ${driver.name} is currently BUSY` });
+    if (driver.status === 'ON_DELIVERY') {
+        res.status(400).json({ message: `Driver ${driver.name} is currently ON_DELIVERY` });
         return;
     }
 
@@ -142,8 +142,8 @@ export const assignDriver = async (req: AuthRequest, res: Response): Promise<voi
         }
     }
 
-    // 4. Update Driver Status to BUSY
-    driver.status = 'BUSY';
+    // 4. Update Driver Status to ON_DELIVERY
+    driver.status = 'ON_DELIVERY';
     driver.current_shipment_id = shipment._id as any;
     await driver.save();
 
@@ -151,7 +151,7 @@ export const assignDriver = async (req: AuthRequest, res: Response): Promise<voi
     shipment.driver = { name: driver.name, phone: driver.phone }; // Store snapshot
     shipment.items = items; 
     shipment.eta = eta;
-    shipment.status = 'ASSIGNED'; 
+    shipment.status = 'ON_THE_WAY'; 
     shipment.updated_at = new Date();
 
     await shipment.save();
@@ -180,7 +180,7 @@ export const confirmDelivery = async (req: Request, res: Response): Promise<void
         return;
       }
   
-      shipment.status = 'COMPLETED';
+      shipment.status = 'CONFIRMED';
       shipment.updated_at = new Date();
       await shipment.save();
 

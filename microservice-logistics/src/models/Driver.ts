@@ -5,7 +5,7 @@ export interface IDriver extends Document {
   name: string;
   phone: string;
   vehicle_number: string;
-  status: 'AVAILABLE' | 'BUSY';
+  status: 'AVAILABLE' | 'ON_DELIVERY' | 'OFF_DUTY';
   current_shipment_id?: mongoose.Types.ObjectId; // Lock to a shipment if BUSY
   created_at: Date;
 }
@@ -17,7 +17,7 @@ const DriverSchema: Schema = new Schema({
   vehicle_number: { type: String, required: true },
   status: {
     type: String,
-    enum: ['AVAILABLE', 'BUSY'],
+    enum: ['AVAILABLE', 'ON_DELIVERY', 'OFF_DUTY'],
     default: 'AVAILABLE'
   },
   current_shipment_id: { type: Schema.Types.ObjectId, ref: 'Shipment' },

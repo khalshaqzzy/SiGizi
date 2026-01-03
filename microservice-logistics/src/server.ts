@@ -8,6 +8,9 @@ import inventoryRoutes from './routes/inventoryRoutes';
 import shipmentRoutes from './routes/shipmentRoutes';
 import driverRoutes from './routes/driverRoutes';
 
+import dashboardRoutes from './routes/dashboardRoutes';
+import posyanduRoutes from './routes/posyanduRoutes';
+
 dotenv.config();
 
 const app: Application = express();
@@ -26,6 +29,8 @@ app.use('/api/internal', internalRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/drivers', driverRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/posyandus', posyanduRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

@@ -18,7 +18,7 @@ export interface IShipment extends Document {
     phone: string;
   };
   eta?: string;
-  status: 'PENDING' | 'ASSIGNED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'ASSIGNED' | 'ON_THE_WAY' | 'DELIVERED' | 'CONFIRMED' | 'CANCELLED';
   created_at: Date;
   updated_at: Date;
 }
@@ -43,7 +43,7 @@ const ShipmentSchema: Schema = new Schema({
   eta: String,
   status: {
     type: String,
-    enum: ['PENDING', 'ASSIGNED', 'DELIVERED', 'COMPLETED', 'CANCELLED'],
+    enum: ['PENDING', 'ASSIGNED', 'ON_THE_WAY', 'DELIVERED', 'CONFIRMED', 'CANCELLED'],
     default: 'PENDING'
   },
   created_at: { type: Date, default: Date.now },

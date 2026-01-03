@@ -24,7 +24,7 @@ export const getInventory = async (req: AuthRequest, res: Response): Promise<voi
 
 export const updateInventory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { sku, name, quantity, unit } = req.body;
+    const { sku, name, quantity, unit, min_stock } = req.body;
     
     // Check if item exists
     const provider = await LogisticsProvider.findById(req.user?.id);
@@ -40,13 +40,33 @@ export const updateInventory = async (req: AuthRequest, res: Response): Promise<
       provider.inventory[itemIndex].quantity = quantity;
       if (name) provider.inventory[itemIndex].name = name;
       if (unit) provider.inventory[itemIndex].unit = unit;
+      if (min_stock !== undefined) provider.inventory[itemIndex].min_stock = min_stock;
     } else {
       // Add new
-      provider.inventory.push({ sku, name, quantity, unit });
+      provider.inventory.push({ sku, name, quantity, unit, min_stock: min_stock || 10 });
     }
 
     await provider.save();
     res.json(provider.inventory);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const deleteInventoryItem = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { sku } = req.params;
+    
+    const provider = await LogisticsProvider.findById(req.user?.id);
+    if (!provider) {
+      res.status(404).json({ message: 'Provider not found' });
+      return;
+    }
+
+    provider.inventory = provider.inventory.filter(item => item.sku !== sku);
+    
+    await provider.save();
+    res.json({ message: 'Item removed', inventory: provider.inventory });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
