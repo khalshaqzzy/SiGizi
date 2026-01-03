@@ -143,6 +143,23 @@ export default function RegisterPage() {
                 required
               />
             </div>
+
+            {formData.lat !== 0 && (
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-emerald-700">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-bold uppercase tracking-wider">Lokasi Terverifikasi</span>
+                  </div>
+                  <p className="text-[10px] font-mono text-emerald-600 bg-white/50 px-2 py-0.5 rounded border border-emerald-100">
+                    {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
+                  </p>
+                </div>
+                <p className="text-[11px] text-emerald-600/80 mt-1 leading-tight">
+                  Koordinat berhasil dikunci berdasarkan alamat yang Anda pilih.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Hub Details Section */}

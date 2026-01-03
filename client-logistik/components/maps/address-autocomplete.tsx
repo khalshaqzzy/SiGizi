@@ -148,18 +148,6 @@ export function AddressAutocomplete({
       >
         <div ref={mapRef} className="w-full h-full" />
       </div>
-
-      {selectedLocation && (
-        <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200 animate-in fade-in slide-in-from-top-1">
-          <div className="flex items-center gap-2 text-sm text-emerald-700">
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span className="font-medium">Pin lokasi terpasang</span>
-          </div>
-          <p className="text-[10px] font-mono text-emerald-600 bg-white/50 px-2 py-0.5 rounded border border-emerald-100">
-            {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-          </p>
-        </div>
-      )}
     </div>
   )
 }
