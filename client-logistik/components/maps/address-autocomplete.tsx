@@ -142,8 +142,8 @@ export function AddressAutocomplete({
       {/* Map Preview Area */}
       <div 
         className={cn(
-          "w-full h-48 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 transition-all duration-500",
-          selectedLocation ? "opacity-100 shadow-sm" : "opacity-60"
+          "w-full h-64 rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 transition-all duration-500",
+          selectedLocation ? "opacity-100 shadow-md ring-1 ring-slate-200" : "opacity-60 grayscale-[50%]"
         )}
       >
         <div ref={mapRef} className="w-full h-full" />
