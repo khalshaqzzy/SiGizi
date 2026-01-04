@@ -31,6 +31,7 @@ export interface InventoryItem {
   unit: "Box" | "Carton" | "Bottle" | "Pack"
   min_stock: number
   created_at: string
+  updated_at: string
 }
 
 export interface Posyandu {
@@ -60,7 +61,7 @@ export interface Shipment {
   age_months: number
   z_score: number
   urgency: "HIGH" | "MEDIUM" | "LOW"
-  status: "PENDING" | "ASSIGNED" | "ON_THE_WAY" | "DELIVERED" | "CONFIRMED"
+  status: "PENDING" | "ON_THE_WAY" | "DELIVERED" | "CANCELLED"
   items: ShipmentItem[]
   driver?: Driver
   eta?: string

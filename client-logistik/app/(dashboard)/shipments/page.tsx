@@ -12,13 +12,16 @@ import { Package } from "lucide-react"
 import api from "@/lib/axios"
 import { toast } from "sonner"
 
-type FilterTab = "all" | "pending" | "assigned" | "delivered" | "confirmed"
+import { HealthDetailModal } from "@/components/shipments/health-detail-modal"
+
+type FilterTab = "all" | "pending" | "on_the_way" | "delivered" | "cancelled"
 
 export default function ShipmentsPage() {
   const queryClient = useQueryClient()
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all")
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [viewHealthShipment, setViewHealthShipment] = useState<string | null>(null)
 
   const { data: shipments = [], isLoading } = useQuery({
     queryKey: ["shipments"],
@@ -46,18 +49,18 @@ export default function ShipmentsPage() {
     return {
       all: shipments.length,
       pending: shipments.filter((s: Shipment) => s.status === "PENDING").length,
-      assigned: shipments.filter((s: Shipment) => s.status === "ASSIGNED" || s.status === "ON_THE_WAY").length,
+      on_the_way: shipments.filter((s: Shipment) => s.status === "ON_THE_WAY").length,
       delivered: shipments.filter((s: Shipment) => s.status === "DELIVERED").length,
-      confirmed: shipments.filter((s: Shipment) => s.status === "CONFIRMED").length,
+      cancelled: shipments.filter((s: Shipment) => s.status === "CANCELLED").length,
     }
   }, [shipments])
 
   const filteredShipments = useMemo(() => {
     if (activeFilter === "all") return shipments
     if (activeFilter === "pending") return shipments.filter((s: Shipment) => s.status === "PENDING")
-    if (activeFilter === "assigned") return shipments.filter((s: Shipment) => s.status === "ASSIGNED" || s.status === "ON_THE_WAY")
+    if (activeFilter === "on_the_way") return shipments.filter((s: Shipment) => s.status === "ON_THE_WAY")
     if (activeFilter === "delivered") return shipments.filter((s: Shipment) => s.status === "DELIVERED")
-    if (activeFilter === "confirmed") return shipments.filter((s: Shipment) => s.status === "CONFIRMED")
+    if (activeFilter === "cancelled") return shipments.filter((s: Shipment) => s.status === "CANCELLED")
     return shipments
   }, [shipments, activeFilter])
 
@@ -92,7 +95,12 @@ export default function ShipmentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredShipments.map((shipment: Shipment) => (
-              <ShipmentCard key={shipment.id || (shipment as any)._id} shipment={shipment} onAssign={handleAssign} />
+              <ShipmentCard 
+                key={shipment.id || (shipment as any)._id} 
+                shipment={shipment} 
+                onAssign={handleAssign} 
+                onViewDetails={(s) => setViewHealthShipment(s.id || (s as any)._id)}
+              />
             ))}
           </div>
         )}
@@ -104,6 +112,14 @@ export default function ShipmentsPage() {
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setSelectedShipment(null) }}
           onAssign={handleAssignComplete}
+        />
+      )}
+
+      {viewHealthShipment && (
+        <HealthDetailModal 
+          shipmentId={viewHealthShipment}
+          isOpen={!!viewHealthShipment}
+          onClose={() => setViewHealthShipment(null)}
         />
       )}
     </DashboardLayout>

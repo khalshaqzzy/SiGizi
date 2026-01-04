@@ -40,10 +40,9 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
   const getStatusLabel = (status: Shipment["status"]) => {
     const labels: Record<Shipment["status"], string> = {
       PENDING: "Menunggu",
-      ASSIGNED: "Ditugaskan",
       ON_THE_WAY: "Dalam Perjalanan",
-      DELIVERED: "Terkirim",
-      CONFIRMED: "Dikonfirmasi",
+      DELIVERED: "Diterima Posyandu",
+      CANCELLED: "Dibatalkan",
     }
     return labels[status]
   }
@@ -58,7 +57,7 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
             {shipment.urgency === "HIGH" ? "Mendesak" : shipment.urgency === "MEDIUM" ? "Sedang" : "Rendah"}
           </StatusBadge>
         </div>
-        <StatusBadge variant={shipment.status.toLowerCase().replace("_", "_") as "pending" | "assigned" | "delivered"}>
+        <StatusBadge variant={shipment.status.toLowerCase() as "pending" | "on_the_way" | "delivered" | "cancelled"}>
           {getStatusLabel(shipment.status)}
         </StatusBadge>
       </div>

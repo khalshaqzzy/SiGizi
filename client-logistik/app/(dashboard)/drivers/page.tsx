@@ -26,7 +26,7 @@ export default function DriversPage() {
     queryKey: ["drivers"],
     queryFn: async () => {
       const res = await api.get("/drivers")
-      return res.data
+      return res.data.map((d: any) => ({ ...d, id: d._id }))
     },
   })
 

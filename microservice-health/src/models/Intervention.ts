@@ -4,7 +4,7 @@ export interface IIntervention extends Document {
   posyandu_id: mongoose.Types.ObjectId;
   patient_id: mongoose.Types.ObjectId;
   request_id: string; // ID unik yang sama dengan di Logistics
-  status: 'PENDING' | 'ASSIGNED' | 'ON_THE_WAY' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'ON_THE_WAY' | 'DELIVERED' | 'CANCELLED';
   urgency: string;
   created_at: Date;
   updated_at: Date;
@@ -16,7 +16,7 @@ const InterventionSchema: Schema = new Schema({
   request_id: { type: String, required: true, unique: true },
   status: { 
     type: String, 
-    enum: ['PENDING', 'ASSIGNED', 'ON_THE_WAY', 'COMPLETED', 'CANCELLED'],
+    enum: ['PENDING', 'ON_THE_WAY', 'DELIVERED', 'CANCELLED'],
     default: 'PENDING'
   },
   urgency: { type: String, default: 'HIGH' },

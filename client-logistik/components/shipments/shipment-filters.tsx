@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 
-type FilterTab = "all" | "pending" | "assigned" | "delivered" | "confirmed"
+type FilterTab = "all" | "pending" | "on_the_way" | "delivered" | "cancelled"
 
 interface ShipmentFiltersProps {
   activeFilter: FilterTab
@@ -14,9 +14,9 @@ export function ShipmentFilters({ activeFilter, onFilterChange, counts }: Shipme
   const tabs: { id: FilterTab; label: string }[] = [
     { id: "all", label: "Semua" },
     { id: "pending", label: "Menunggu" },
-    { id: "assigned", label: "Ditugaskan" },
-    { id: "delivered", label: "Terkirim" },
-    { id: "confirmed", label: "Dikonfirmasi" },
+    { id: "on_the_way", label: "Dalam Perjalanan" },
+    { id: "delivered", label: "Selesai" },
+    { id: "cancelled", label: "Batal" },
   ]
 
   return (

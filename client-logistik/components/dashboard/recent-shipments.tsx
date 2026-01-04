@@ -23,10 +23,9 @@ export function RecentShipments({ shipments }: RecentShipmentsProps) {
   const getStatusLabel = (status: Shipment["status"]) => {
     const labels: Record<Shipment["status"], string> = {
       PENDING: "Menunggu",
-      ASSIGNED: "Ditugaskan",
       ON_THE_WAY: "Dalam Perjalanan",
-      DELIVERED: "Terkirim",
-      CONFIRMED: "Dikonfirmasi",
+      DELIVERED: "Selesai",
+      CANCELLED: "Dibatalkan",
     }
     return labels[status]
   }
@@ -64,7 +63,7 @@ export function RecentShipments({ shipments }: RecentShipmentsProps) {
                   {formatDate(shipment.created_at)}
                 </div>
               </div>
-              <StatusBadge variant={shipment.status.toLowerCase().replace("_", "_") as "pending" | "assigned"}>
+              <StatusBadge variant={shipment.status.toLowerCase() as "pending" | "on_the_way" | "delivered" | "cancelled"}>
                 {getStatusLabel(shipment.status)}
               </StatusBadge>
             </div>

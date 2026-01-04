@@ -41,9 +41,18 @@ export const updateInventory = async (req: AuthRequest, res: Response): Promise<
       if (name) provider.inventory[itemIndex].name = name;
       if (unit) provider.inventory[itemIndex].unit = unit;
       if (min_stock !== undefined) provider.inventory[itemIndex].min_stock = min_stock;
+      provider.inventory[itemIndex].updated_at = new Date();
     } else {
       // Add new
-      provider.inventory.push({ sku, name, quantity, unit, min_stock: min_stock || 10 });
+      provider.inventory.push({ 
+        sku, 
+        name, 
+        quantity, 
+        unit, 
+        min_stock: min_stock || 10,
+        created_at: new Date(),
+        updated_at: new Date()
+      } as any);
     }
 
     await provider.save();

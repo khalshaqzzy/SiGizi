@@ -25,7 +25,7 @@ export default function InventoryPage() {
     queryKey: ["inventory"],
     queryFn: async () => {
       const res = await api.get("/inventory")
-      return res.data
+      return res.data.map((i: any) => ({ ...i, id: i._id }))
     },
   })
 

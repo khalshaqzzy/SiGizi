@@ -135,7 +135,7 @@ export const mockShipments: Shipment[] = [
     age_months: 18,
     z_score: -3.5,
     urgency: "HIGH",
-    status: "ASSIGNED",
+    status: "ON_THE_WAY",
     items: [
       { sku: "MILK-001", name: "SGM Eksplor 1+ (400g)", qty: 2 },
       { sku: "VIT-001", name: "Vitamin A Drops", qty: 1 },
@@ -183,7 +183,7 @@ export const mockShipments: Shipment[] = [
     age_months: 30,
     z_score: -3.8,
     urgency: "HIGH",
-    status: "CONFIRMED",
+    status: "DELIVERED",
     items: [
       { sku: "MILK-001", name: "SGM Eksplor 1+ (400g)", qty: 2 },
       { sku: "VIT-001", name: "Vitamin A Drops", qty: 1 },

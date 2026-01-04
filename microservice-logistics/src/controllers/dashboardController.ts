@@ -11,10 +11,10 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
   try {
     const hubId = req.user.id;
 
-    // 1. Active Shipments (Pending, Assigned, On The Way)
+    // 1. Active Shipments (Pending, On The Way)
     const active_shipments = await Shipment.countDocuments({
       hub_id: hubId,
-      status: { $in: ['PENDING', 'ASSIGNED', 'ON_THE_WAY'] }
+      status: { $in: ['PENDING', 'ON_THE_WAY'] }
     });
 
     // 2. Pending Requests
@@ -29,7 +29,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
     
     const completed_today = await Shipment.countDocuments({
       hub_id: hubId,
-      status: 'CONFIRMED',
+      status: 'DELIVERED',
       updated_at: { $gte: startOfDay }
     });
 

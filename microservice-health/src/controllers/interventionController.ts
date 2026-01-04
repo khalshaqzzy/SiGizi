@@ -109,7 +109,7 @@ export const confirmReceipt = async (req: AuthRequest, res: Response): Promise<v
     });
 
     // Update Local Status
-    intervention.status = 'COMPLETED';
+    intervention.status = 'DELIVERED';
     intervention.updated_at = new Date();
     await intervention.save();
 
@@ -117,5 +117,26 @@ export const confirmReceipt = async (req: AuthRequest, res: Response): Promise<v
 
   } catch (error: any) {
     res.status(500).json({ message: 'Failed to confirm receipt', error: error.message });
+  }
+};
+
+export const getInterventionDetailsInternal = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { requestId } = req.params;
+
+    const intervention = await Intervention.findOne({ request_id: requestId })
+      .populate({
+        path: 'patient_id',
+        select: 'name dob gender measurements'
+      });
+
+    if (!intervention) {
+      res.status(404).json({ message: 'Intervention not found' });
+      return;
+    }
+
+    res.json(intervention);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

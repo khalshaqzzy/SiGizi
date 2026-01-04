@@ -37,7 +37,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Ditambahkan
+              Terakhir Update
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
           </tr>
@@ -45,6 +45,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
         <tbody className="divide-y divide-slate-100">
           {items.map((item) => {
             const isLowStock = item.quantity <= item.min_stock
+            const dateDisplay = item.updated_at || item.created_at || new Date().toISOString()
+            
             return (
               <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -81,7 +83,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-slate-500">{formatDate(item.created_at)}</span>
+                  <span className="text-sm text-slate-500">{formatDate(dateDisplay)}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <div className="flex items-center justify-end gap-1">
