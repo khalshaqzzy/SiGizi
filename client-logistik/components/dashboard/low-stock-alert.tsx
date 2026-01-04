@@ -23,8 +23,8 @@ export function LowStockAlert({ items }: LowStockAlertProps) {
           <h4 className="text-sm font-medium text-amber-800">Stok Menipis</h4>
           <p className="text-sm text-amber-700 mt-1">{lowStockItems.length} item membutuhkan restok segera</p>
           <div className="mt-2 space-y-1">
-            {lowStockItems.slice(0, 3).map((item) => (
-              <div key={item.id} className="flex items-center justify-between text-xs">
+            {lowStockItems.slice(0, 3).map((item: any) => (
+              <div key={item.sku || item._id || item.id} className="flex items-center justify-between text-xs">
                 <span className="text-amber-800">{item.name}</span>
                 <span className="font-medium text-amber-900">
                   {item.quantity} / {item.min_stock} {item.unit}

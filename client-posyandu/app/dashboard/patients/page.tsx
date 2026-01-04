@@ -10,31 +10,39 @@ import { AzureButton } from "@/components/ui/azure-button"
 import { HealthBadge } from "@/components/ui/health-badge"
 import { PatientForm, type PatientFormData } from "@/components/patients/patient-form"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { mockPatients, calculateAgeInMonths } from "@/lib/mock-data"
 import { Search, UserPlus, Eye, Ruler, Users, FileX } from "lucide-react"
 import { toast } from "sonner"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import api from "@/lib/axios"
+import { calculateAgeInMonths } from "@/lib/utils"
 
 export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showForm, setShowForm] = useState(false)
-  const [patients, setPatients] = useState(mockPatients)
+  const queryClient = useQueryClient()
+
+  const { data: patients = [], isLoading } = useQuery({
+    queryKey: ["patients"],
+    queryFn: async () => (await api.get("/patients")).data,
+  })
 
   const filteredPatients = patients.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.parent_name.toLowerCase().includes(searchQuery.toLowerCase()),
+    (p: any) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const createMutation = useMutation({
+    mutationFn: async (data: PatientFormData) => api.post("/patients", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] })
+      setShowForm(false)
+      toast.success("Data anak berhasil ditambahkan")
+    },
+    onError: () => toast.error("Gagal menambahkan data anak")
+  })
+
   const handleAddPatient = (data: PatientFormData) => {
-    const newPatient = {
-      id: "pat_" + Date.now(),
-      posyandu_id: "pos_001",
-      ...data,
-      created_at: new Date().toISOString(),
-    }
-    setPatients([...patients, newPatient])
-    setShowForm(false)
-    toast.success("Data anak berhasil ditambahkan")
+    createMutation.mutate(data)
   }
 
   return (
@@ -57,7 +65,7 @@ export default function PatientsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Cari nama anak atau orang tua..."
+                  placeholder="Cari nama anak..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -100,27 +108,27 @@ export default function PatientsPage() {
                   <TableRow>
                     <TableHead>Nama Anak</TableHead>
                     <TableHead>Umur (Bulan)</TableHead>
-                    <TableHead>Orang Tua</TableHead>
                     <TableHead>Status Gizi Terakhir</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPatients.map((patient) => {
+                  {filteredPatients.map((patient: any) => {
                     const ageMonths = calculateAgeInMonths(patient.dob)
+                    const latestMeasurement = patient.measurements?.[patient.measurements.length - 1]
+                    
                     return (
-                      <TableRow key={patient.id}>
+                      <TableRow key={patient._id}>
                         <TableCell>
                           <div className="font-medium">{patient.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {patient.gender === "male" ? "Laki-laki" : "Perempuan"}
+                            {patient.gender === "MALE" ? "Laki-laki" : "Perempuan"}
                           </div>
                         </TableCell>
                         <TableCell className="font-mono">{ageMonths}</TableCell>
-                        <TableCell className="text-muted-foreground">{patient.parent_name}</TableCell>
                         <TableCell>
-                          {patient.latest_measurement ? (
-                            <HealthBadge status={patient.latest_measurement.status} showIcon />
+                          {latestMeasurement ? (
+                            <HealthBadge status={latestMeasurement.status} showIcon />
                           ) : (
                             <span className="text-sm text-muted-foreground">Belum ada data</span>
                           )}
@@ -128,13 +136,13 @@ export default function PatientsPage() {
                         <TableCell>
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="sm" asChild>
-                              <Link href={`/dashboard/patients/${patient.id}`}>
+                              <Link href={`/dashboard/patients/${patient._id}`}>
                                 <Eye className="mr-1 h-4 w-4" />
                                 Detail
                               </Link>
                             </Button>
                             <Button variant="outline" size="sm" asChild>
-                              <Link href={`/dashboard/patients/${patient.id}/measure`}>
+                              <Link href={`/dashboard/patients/${patient._id}/measure`}>
                                 <Ruler className="mr-1 h-4 w-4" />
                                 Ukur
                               </Link>

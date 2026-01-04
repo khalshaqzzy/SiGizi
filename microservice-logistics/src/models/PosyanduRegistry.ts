@@ -9,6 +9,8 @@ export interface IPosyanduRegistry extends Document {
     coordinates: number[]; // [lng, lat]
   };
   assigned_hub_id?: mongoose.Types.ObjectId;
+  distance_km?: number;
+  travel_time_minutes?: number;
   last_synced_at: Date;
 }
 
@@ -43,6 +45,8 @@ const PosyanduRegistrySchema: Schema = new Schema({
     ref: 'LogisticsProvider',
     default: null
   },
+  distance_km: { type: Number },
+  travel_time_minutes: { type: Number },
   last_synced_at: {
     type: Date,
     default: Date.now

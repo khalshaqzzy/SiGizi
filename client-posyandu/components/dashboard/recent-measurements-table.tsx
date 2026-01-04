@@ -4,19 +4,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HealthBadge } from "@/components/ui/health-badge"
 import { Activity } from "lucide-react"
-import { mockPatients } from "@/lib/mock-data"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { useQuery } from "@tanstack/react-query"
+import api from "@/lib/axios"
+import { calculateAgeInMonths } from "@/lib/utils"
 
 export function RecentMeasurementsTable() {
-  // Get last 5 measurements
-  const recentMeasurements = mockPatients
-    .filter((p) => p.latest_measurement)
-    .sort((a, b) => {
-      const dateA = new Date(a.latest_measurement?.date || 0)
-      const dateB = new Date(b.latest_measurement?.date || 0)
-      return dateB.getTime() - dateA.getTime()
+  const { data: patients = [] } = useQuery({
+    queryKey: ["patients"],
+    queryFn: async () => (await api.get("/patients")).data,
+  })
+
+  // Extract all measurements and sort
+  const recentMeasurements = patients
+    .flatMap((p: any) => {
+        if (!p.measurements) return []
+        return p.measurements.map((m: any) => ({
+            ...m,
+            patientName: p.name,
+            patientId: p._id,
+            dob: p.dob
+        }))
     })
+    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
 
   return (
@@ -41,15 +52,15 @@ export function RecentMeasurementsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recentMeasurements.map((patient) => {
-              const m = patient.latest_measurement!
+            {recentMeasurements.map((m: any, idx: number) => {
+              const ageMonths = calculateAgeInMonths(m.dob)
               return (
-                <TableRow key={patient.id}>
-                  <TableCell className="font-medium">{patient.name}</TableCell>
+                <TableRow key={`${m.patientId}-${idx}`}>
+                  <TableCell className="font-medium">{m.patientName}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {format(new Date(m.date), "d MMM yyyy", { locale: id })}
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">{m.age_months} bln</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{ageMonths} bln</TableCell>
                   <TableCell className="text-right font-mono">{m.weight.toFixed(1)}</TableCell>
                   <TableCell className="text-right font-mono">{m.height.toFixed(1)}</TableCell>
                   <TableCell className="text-right font-mono font-semibold">

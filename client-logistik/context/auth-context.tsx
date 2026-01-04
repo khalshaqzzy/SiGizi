@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = Cookies.get('token');
+      const token = Cookies.get('sigizi_logistics_token');
       if (!token) {
         setIsLoading(false);
         if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
@@ -44,17 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // Optional: Validate token with backend /me endpoint if exists, 
-        // for now we rely on the stored cookie/localStorage user data or just token presence
-        // We stored 'user' in cookie during login (implementation below)
-        const storedUser = Cookies.get('user');
+        const storedUser = Cookies.get('sigizi_logistics_user');
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
       } catch (error) {
         console.error('Auth init error', error);
-        Cookies.remove('token');
-        Cookies.remove('user');
+        Cookies.remove('sigizi_logistics_token');
+        Cookies.remove('sigizi_logistics_user');
       } finally {
         setIsLoading(false);
       }
@@ -64,16 +61,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   const login = (token: string, userData: User) => {
-    Cookies.set('token', token, { expires: 1 }); // 1 day
-    Cookies.set('user', JSON.stringify(userData), { expires: 1 });
+    Cookies.set('sigizi_logistics_token', token, { expires: 1 }); // 1 day
+    Cookies.set('sigizi_logistics_user', JSON.stringify(userData), { expires: 1 });
     setUser(userData);
     router.push('/dashboard');
     toast.success('Login Berhasil');
   };
 
   const logout = () => {
-    Cookies.remove('token');
-    Cookies.remove('user');
+    Cookies.remove('sigizi_logistics_token');
+    Cookies.remove('sigizi_logistics_user');
     setUser(null);
     router.push('/login');
     toast.info('Logged out');
@@ -83,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
           const newUser = { ...user, ...data };
           setUser(newUser);
-          Cookies.set('user', JSON.stringify(newUser), { expires: 1 });
+          Cookies.set('sigizi_logistics_user', JSON.stringify(newUser), { expires: 1 });
       }
   }
 

@@ -74,3 +74,24 @@ export const getPatients = async (req: AuthRequest, res: Response): Promise<void
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
+
+export const getPatientById = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { patientId } = req.params;
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+      res.status(404).json({ message: 'Patient not found' });
+      return;
+    }
+
+    if (patient.posyandu_id.toString() !== req.user.id) {
+        res.status(403).json({ message: 'Not authorized' });
+        return;
+    }
+
+    res.json(patient);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

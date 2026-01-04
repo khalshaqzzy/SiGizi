@@ -67,7 +67,7 @@ export function Sidebar() {
           <div className="mb-3 rounded-xl bg-card p-3">
             <p className="text-xs font-medium text-muted-foreground">Posyandu</p>
             <p className="truncate text-sm font-semibold text-foreground">
-              {user?.posyandu_details.name || "Posyandu"}
+              {user?.posyandu_details?.name || "Posyandu"}
             </p>
           </div>
           <Button

@@ -64,12 +64,20 @@ export const loginPosyandu = async (req: Request, res: Response): Promise<void> 
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role || 'POSYANDU_ADMIN' },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '1d' }
     );
 
-    res.json({ token, user: { id: user._id, name: user.posyandu_details.name } });
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        username: user.username,
+        role: user.role,
+        posyandu_details: user.posyandu_details 
+      } 
+    });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

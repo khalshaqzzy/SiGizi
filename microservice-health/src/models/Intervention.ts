@@ -6,6 +6,10 @@ export interface IIntervention extends Document {
   request_id: string; // ID unik yang sama dengan di Logistics
   status: 'PENDING' | 'ON_THE_WAY' | 'DELIVERED' | 'CANCELLED';
   urgency: string;
+  driver_name?: string;
+  driver_phone?: string;
+  eta?: string;
+  shipped_at?: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -20,6 +24,10 @@ const InterventionSchema: Schema = new Schema({
     default: 'PENDING'
   },
   urgency: { type: String, default: 'HIGH' },
+  driver_name: { type: String },
+  driver_phone: { type: String },
+  eta: { type: String },
+  shipped_at: { type: Date },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });

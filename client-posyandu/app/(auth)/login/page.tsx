@@ -12,36 +12,32 @@ import { AzureButton } from "@/components/ui/azure-button"
 import { useAuth } from "@/components/auth/auth-context"
 import { Heart, Eye, EyeOff, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
+import api from "@/lib/axios"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { login, isAuthenticated, isLoading } = useAuth()
+  const { login, user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && user) {
       router.replace("/dashboard")
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [user, isLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      const success = await login(username, password)
-      if (success) {
-        toast.success("Selamat datang kembali!")
-        router.replace("/dashboard")
-      } else {
-        toast.error("Username atau password salah")
-        setIsSubmitting(false)
-      }
-    } catch {
-      toast.error("Terjadi kesalahan. Silakan coba lagi.")
+      const response = await api.post('/auth/login', { username, password })
+      login(response.data.token, response.data.user)
+      // login function handles toast and redirect
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Username atau password salah")
       setIsSubmitting(false)
     }
   }

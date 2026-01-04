@@ -1,17 +1,11 @@
-"use client"
-
 import { MapPin, Clock, User, AlertCircle, ChevronRight } from "lucide-react"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
-import type { Shipment } from "@/lib/types"
+import { useState, useEffect } from "react"
 
-interface ShipmentCardProps {
-  shipment: Shipment
-  onAssign?: (shipment: Shipment) => void
-  onViewDetails?: (shipment: Shipment) => void
-}
+export function ShipmentCard({ shipment, onAssign, onViewDetails }: any) {
+  const [liveEta, setLiveEta] = useState(shipment.eta)
 
-export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCardProps) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString("id-ID", {
@@ -23,7 +17,56 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
     })
   }
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      PENDING: "Menunggu",
+      ON_THE_WAY: "Dalam Perjalanan",
+      DELIVERED: "Diterima Posyandu",
+      CANCELLED: "Dibatalkan",
+    }
+    return labels[status] || status
+  }
+
+  const status = shipment.status || "PENDING"
+  const isOnTheWay = status === "ON_THE_WAY"
+
+  // Live Countdown Logic
+  useEffect(() => {
+    if (isOnTheWay && shipment.updated_at && shipment.eta) {
+      const initialMinutes = parseInt(shipment.eta)
+      if (isNaN(initialMinutes)) return
+
+      const arrivalTime = new Date(shipment.updated_at).getTime() + initialMinutes * 60 * 1000
+
+      const calculate = () => {
+        const now = new Date().getTime()
+        const diffMs = arrivalTime - now
+        const diffMin = Math.ceil(diffMs / 60000)
+
+        if (diffMin <= 0) {
+          setLiveEta("Tiba segera")
+        } else {
+          setLiveEta(`${diffMin} menit`)
+        }
+      }
+
+      calculate()
+      const timer = setInterval(calculate, 30000) // Update every 30s
+      return () => clearInterval(timer)
+    } else {
+      setLiveEta(shipment.eta)
+    }
+  }, [isOnTheWay, shipment.updated_at, shipment.eta])
+
+  const urgency = shipment.urgency || shipment.patient_details?.urgency || "LOW"
+  const patientName = shipment.patient_name || shipment.patient_details?.name || "-"
+  const ageMonths = shipment.age_months || shipment.patient_details?.age_months || 0
+  const zScore = shipment.z_score || shipment.patient_details?.z_score || 0
+  const posyanduName = shipment.posyandu?.name || shipment.posyandu_id?.name || "Posyandu"
+  const posyanduAddress = shipment.posyandu?.address || shipment.posyandu_id?.address || "-"
+
   const getAgeLabel = (months: number) => {
+    if (!months) return "Umur -"
     if (months < 12) return `${months} bulan`
     const years = Math.floor(months / 12)
     const remainingMonths = months % 12
@@ -32,19 +75,10 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
   }
 
   const getZScoreLabel = (zScore: number) => {
+    if (zScore === undefined) return "Status -"
     if (zScore < -3) return "Stunting Berat"
     if (zScore < -2) return "Stunting"
     return "Normal"
-  }
-
-  const getStatusLabel = (status: Shipment["status"]) => {
-    const labels: Record<Shipment["status"], string> = {
-      PENDING: "Menunggu",
-      ON_THE_WAY: "Dalam Perjalanan",
-      DELIVERED: "Diterima Posyandu",
-      CANCELLED: "Dibatalkan",
-    }
-    return labels[status]
   }
 
   return (
@@ -53,12 +87,12 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
       <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-sm font-mono font-medium text-slate-900">#{shipment.health_request_id}</span>
-          <StatusBadge variant={shipment.urgency.toLowerCase() as "high" | "medium" | "low"}>
-            {shipment.urgency === "HIGH" ? "Mendesak" : shipment.urgency === "MEDIUM" ? "Sedang" : "Rendah"}
+          <StatusBadge variant={urgency.toLowerCase() as any}>
+            {urgency === "HIGH" ? "Mendesak" : urgency === "MEDIUM" ? "Sedang" : "Rendah"}
           </StatusBadge>
         </div>
-        <StatusBadge variant={shipment.status.toLowerCase() as "pending" | "on_the_way" | "delivered" | "cancelled"}>
-          {getStatusLabel(shipment.status)}
+        <StatusBadge variant={status.toLowerCase() as any}>
+          {getStatusLabel(status)}
         </StatusBadge>
       </div>
 
@@ -72,8 +106,8 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pasien</p>
-              <p className="text-sm font-medium text-slate-900 mt-0.5">{shipment.patient_initials}</p>
-              <p className="text-xs text-slate-500">{getAgeLabel(shipment.age_months)}</p>
+              <p className="text-sm font-medium text-slate-900 mt-0.5 truncate max-w-[120px]" title={patientName}>{patientName}</p>
+              <p className="text-xs text-slate-500">{getAgeLabel(ageMonths)}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -82,8 +116,8 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status Gizi</p>
-              <p className="text-sm font-medium text-red-600 mt-0.5">{getZScoreLabel(shipment.z_score)}</p>
-              <p className="text-xs text-slate-500">Z-Score: {shipment.z_score.toFixed(1)}</p>
+              <p className="text-sm font-medium text-red-600 mt-0.5">{getZScoreLabel(zScore)}</p>
+              <p className="text-xs text-slate-500">Z-Score: {zScore?.toFixed(1) || "-"}</p>
             </div>
           </div>
         </div>
@@ -92,11 +126,11 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
           <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900">{shipment.posyandu.name}</p>
-            <p className="text-xs text-slate-500 truncate">{shipment.posyandu.address}</p>
+            <p className="text-sm font-medium text-slate-900">{posyanduName}</p>
+            <p className="text-xs text-slate-500 truncate">{posyanduAddress}</p>
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-              <span>{shipment.posyandu.distance_km} km</span>
-              <span>~{shipment.posyandu.travel_time_minutes} menit</span>
+              <span>{shipment.posyandu?.distance_km || shipment.posyandu_id?.distance_km || "-"} km</span>
+              <span>~{shipment.posyandu?.travel_time_minutes || shipment.posyandu_id?.travel_time_minutes || "-"} menit</span>
             </div>
           </div>
         </div>
@@ -111,10 +145,10 @@ export function ShipmentCard({ shipment, onAssign, onViewDetails }: ShipmentCard
               <p className="text-sm font-medium text-blue-900">{shipment.driver.name}</p>
               <p className="text-xs text-blue-600">{shipment.driver.vehicle_number}</p>
             </div>
-            {shipment.eta && (
+            {liveEta && isOnTheWay && (
               <div className="text-right">
-                <p className="text-xs text-blue-500">ETA</p>
-                <p className="text-sm font-medium text-blue-700">{shipment.eta}</p>
+                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider">Sisa Waktu</p>
+                <p className="text-sm font-bold text-blue-700 animate-pulse">{liveEta}</p>
               </div>
             )}
           </div>

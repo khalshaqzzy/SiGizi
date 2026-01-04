@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes';
 import patientRoutes from './routes/patientRoutes';
 import interventionRoutes from './routes/interventionRoutes';
 import internalRoutes from './routes/internalRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/interventions', interventionRoutes);
 app.use('/api/internal', internalRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

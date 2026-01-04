@@ -6,67 +6,59 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { MeasurementForm } from "@/components/patients/measurement-form"
 import { ZScoreResultCard } from "@/components/patients/z-score-result-card"
-import { mockPatients } from "@/lib/mock-data"
 import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
-import type { HealthStatus } from "@/lib/types"
-
-// Mock Z-Score calculation
-function calculateZScore(weight: number, height: number, ageMonths: number): { zScore: number; status: HealthStatus } {
-  // This is a simplified mock calculation
-  // In reality, this would use WHO growth standards
-  const baseZScore = (weight / height) * 100 - 12.5
-  const zScore = Math.max(-5, Math.min(3, baseZScore + (Math.random() - 0.5) * 2))
-
-  let status: HealthStatus = "HEALTHY"
-  if (zScore < -3) status = "SEVERELY_STUNTED"
-  else if (zScore < -2) status = "AT_RISK"
-  else if (zScore < -1.5) status = "HEALTHY"
-
-  return { zScore, status }
-}
-
-function calculateAgeInMonths(dob: string): number {
-  const birthDate = new Date(dob)
-  const today = new Date()
-  return (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth())
-}
+import api from "@/lib/axios"
+import { useQuery, useMutation } from "@tanstack/react-query"
 
 export default function MeasurePage() {
   const params = useParams()
   const patientId = params.id as string
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<{ zScore: number; status: HealthStatus } | null>(null)
+  
+  // Fetch patient details for name context
+  const { data: patient, isLoading: isPatientLoading } = useQuery({
+    queryKey: ["patient", patientId],
+    queryFn: async () => (await api.get(`/patients/${patientId}`)).data,
+  })
 
-  const patient = mockPatients.find((p) => p.id === patientId)
+  const [result, setResult] = useState<{ zScore: number; status: any } | null>(null)
 
-  if (!patient) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Pasien tidak ditemukan</p>
-      </div>
-    )
-  }
+  const measureMutation = useMutation({
+    mutationFn: async (data: { weight: number; height: number; date: string }) => {
+      const res = await api.post(`/patients/${patientId}/measurements`, data)
+      return res.data
+    },
+    onSuccess: (data) => {
+      toast.success("Pengukuran berhasil disimpan")
+      // Update result state to show the card
+      setResult({
+        zScore: data.measurement.z_score,
+        status: data.measurement.status
+      })
+    },
+    onError: () => toast.error("Gagal menyimpan pengukuran")
+  })
 
-  const handleMeasurementSubmit = async (data: { weight: number; height: number; date: string }) => {
-    setIsLoading(true)
+  const requestAidMutation = useMutation({
+    mutationFn: async () => {
+      await api.post("/interventions", {
+        patientId,
+        urgency: "HIGH"
+      })
+    },
+    onSuccess: (data: any) => {
+      toast.success("Permintaan bantuan gizi telah dikirim ke Hub Logistik")
+      router.push("/dashboard/interventions")
+    },
+    onError: () => toast.error("Gagal mengirim permintaan bantuan")
+  })
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+  if (isPatientLoading) return <div className="p-8 text-center">Memuat data pasien...</div>
+  if (!patient) return <div className="p-8 text-center">Pasien tidak ditemukan</div>
 
-    const ageMonths = calculateAgeInMonths(patient.dob)
-    const calculatedResult = calculateZScore(data.weight, data.height, ageMonths)
-
-    setResult(calculatedResult)
-    setIsLoading(false)
-
-    toast.success("Pengukuran berhasil disimpan")
-  }
-
-  const handleRequestAid = () => {
-    toast.success("Permintaan bantuan gizi telah dikirim ke Hub Logistik")
-    router.push("/dashboard/interventions")
+  const handleMeasurementSubmit = (data: { weight: number; height: number; date: string }) => {
+    measureMutation.mutate(data)
   }
 
   return (
@@ -85,7 +77,7 @@ export default function MeasurePage() {
             patientName={patient.name}
             onSubmit={handleMeasurementSubmit}
             onCancel={() => router.back()}
-            isLoading={isLoading}
+            isLoading={measureMutation.isPending}
           />
         )}
 
@@ -94,7 +86,7 @@ export default function MeasurePage() {
           <ZScoreResultCard
             zScore={result.zScore}
             status={result.status}
-            onRequestAid={result.status === "SEVERELY_STUNTED" ? handleRequestAid : undefined}
+            onRequestAid={result.status === "SEVERELY_STUNTED" ? () => requestAidMutation.mutate() : undefined}
           />
         )}
 
@@ -104,7 +96,7 @@ export default function MeasurePage() {
             <Button variant="outline" onClick={() => setResult(null)}>
               Input Ulang
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/dashboard/patients/${patient.id}`)}>
+            <Button variant="outline" onClick={() => router.push(`/dashboard/patients/${patientId}`)}>
               Lihat Profil
             </Button>
           </div>

@@ -27,17 +27,21 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+import { Providers } from "@/components/providers"
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="id">
-      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
-        {children}
-        <Toaster position="top-right" />
-        <Analytics />
+    <html lang="id" suppressHydrationWarning>
+      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`} suppressHydrationWarning>
+        <Providers>
+          {children}
+          <Toaster position="top-right" />
+          <Analytics />
+        </Providers>
       </body>
     </html>
   )

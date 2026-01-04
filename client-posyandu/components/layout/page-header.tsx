@@ -31,11 +31,11 @@ export function PageHeader({ title, subtitle, children }: PageHeaderProps) {
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border-2 border-primary/20">
             <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {user?.posyandu_details.name?.charAt(0) || "P"}
+              {user?.posyandu_details?.name?.charAt(0) || "P"}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-foreground">{user?.posyandu_details.name}</p>
+            <p className="text-sm font-medium text-foreground">{user?.posyandu_details?.name || "Posyandu"}</p>
             <p className="text-xs text-muted-foreground">Kader Posyandu</p>
           </div>
         </div>

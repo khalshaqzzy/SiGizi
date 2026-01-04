@@ -2,7 +2,8 @@
 
 import { cn } from "@/lib/utils"
 import { Clock, Truck, CheckCircle2, XCircle } from "lucide-react"
-import type { InterventionStatus } from "@/lib/types"
+
+export type InterventionStatus = "PENDING" | "ON_THE_WAY" | "DELIVERED" | "CANCELLED"
 
 interface InterventionStatusStepperProps {
   currentStatus: InterventionStatus

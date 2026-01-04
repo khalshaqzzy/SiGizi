@@ -14,6 +14,8 @@ import { useAuth } from "@/components/auth/auth-context"
 import { Heart, Eye, EyeOff, ArrowRight, ArrowLeft, MapPin, Check } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import api from "@/lib/axios"
+import { AddressAutocomplete } from "@/components/maps/address-autocomplete"
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1)
@@ -26,10 +28,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [posyanduName, setPosyanduName] = useState("")
   const [address, setAddress] = useState("")
-  const [lat, setLat] = useState(-6.2)
-  const [lng, setLng] = useState(106.816)
+  const [lat, setLat] = useState(0)
+  const [lng, setLng] = useState(0)
 
-  const { register } = useAuth()
+  // const { register } = useAuth() // Removed as it's not in context
   const router = useRouter()
 
   const handleStep1 = (e: React.FormEvent) => {
@@ -45,28 +47,40 @@ export default function RegisterPage() {
     setStep(2)
   }
 
+  const handleAddressChange = (newAddress: string, newLat: number, newLng: number) => {
+    setAddress(newAddress)
+    setLat(newLat)
+    setLng(newLng)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
+    if (!lat || !lng) {
+      toast.error("Mohon pilih lokasi pada peta (pilih dari sugesti alamat)")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const success = await register({
+      await api.post('/auth/register', {
         username,
         password,
-        posyandu_name: posyanduName,
+        name: posyanduName, // Backend expects 'name'
         address,
         lat,
         lng,
       })
 
-      if (success) {
-        toast.success("Registrasi berhasil!")
-        router.push("/dashboard")
-      } else {
-        toast.error("Registrasi gagal. Silakan coba lagi.")
-      }
-    } catch {
-      toast.error("Terjadi kesalahan. Silakan coba lagi.")
+      toast.success("Registrasi berhasil!", {
+        description: "Silakan masuk dengan akun baru Anda.",
+      })
+      router.push("/login")
+    } catch (error: any) {
+      toast.error("Registrasi gagal", {
+        description: error.response?.data?.message || "Terjadi kesalahan.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -215,41 +229,25 @@ export default function RegisterPage() {
                       disabled={isLoading}
                     />
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="address">Alamat Lengkap</Label>
-                    <Input
-                      id="address"
-                      type="text"
-                      placeholder="Masukkan alamat lengkap"
+                    <Label>Alamat & Lokasi</Label>
+                    <AddressAutocomplete 
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      required
-                      disabled={isLoading}
+                      onChange={handleAddressChange}
+                      placeholder="Cari alamat Posyandu..."
                     />
                   </div>
 
-                  {/* Map Preview Placeholder */}
-                  <div className="space-y-2">
-                    <Label>Lokasi Posyandu</Label>
-                    <div className="relative h-48 overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted">
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <MapPin className="h-8 w-8 text-primary mb-2" />
-                        <p className="text-sm text-muted-foreground text-center px-4">
-                          Peta Google Maps akan terintegrasi di sini
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">Klik untuk memilih lokasi</p>
-                      </div>
+                  {/* Coordinates Display */}
+                  <div className="flex gap-4 text-xs">
+                    <div className="flex-1 rounded-lg bg-muted p-2">
+                      <span className="text-muted-foreground">Latitude: </span>
+                      <span className="font-mono">{lat ? lat.toFixed(6) : "-"}</span>
                     </div>
-                    {/* Coordinates Display */}
-                    <div className="flex gap-4 text-xs">
-                      <div className="flex-1 rounded-lg bg-muted p-2">
-                        <span className="text-muted-foreground">Latitude: </span>
-                        <span className="font-mono">{lat.toFixed(6)}</span>
-                      </div>
-                      <div className="flex-1 rounded-lg bg-muted p-2">
-                        <span className="text-muted-foreground">Longitude: </span>
-                        <span className="font-mono">{lng.toFixed(6)}</span>
-                      </div>
+                    <div className="flex-1 rounded-lg bg-muted p-2">
+                      <span className="text-muted-foreground">Longitude: </span>
+                      <span className="font-mono">{lng ? lng.toFixed(6) : "-"}</span>
                     </div>
                   </div>
 

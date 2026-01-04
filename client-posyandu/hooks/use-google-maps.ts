@@ -35,6 +35,7 @@ export const useGoogleMaps = () => {
     // 4. Jika belum ada, buat script baru
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+      console.error("GMaps API Key missing");
       return;
     }
 

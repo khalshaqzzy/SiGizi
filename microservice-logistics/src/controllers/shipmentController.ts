@@ -4,10 +4,14 @@ import PosyanduRegistry from '../models/PosyanduRegistry';
 import LogisticsProvider from '../models/LogisticsProvider';
 import Driver from '../models/Driver';
 import { assignNearestHub } from '../services/assignmentService';
+import axios from 'axios';
 
 interface AuthRequest extends Request {
   user?: any;
 }
+
+const HEALTH_URL = process.env.HEALTH_SERVICE_URL || 'http://localhost:5001';
+const SHARED_SECRET = process.env.HEALTH_SERVICE_SECRET || 'internal_secret_123';
 
 // Internal: Receive Request from Health Service
 export const createShipmentRequest = async (req: Request, res: Response): Promise<void> => {
@@ -18,7 +22,7 @@ export const createShipmentRequest = async (req: Request, res: Response): Promis
       return;
     }
 
-    const { health_request_id, posyandu_id, patient_initials, age_months, urgency } = req.body;
+    const { health_request_id, posyandu_id, patient_name, age_months, z_score, urgency } = req.body;
 
     // Find the shadow posyandu record
     let posyandu = await PosyanduRegistry.findOne({ health_posyandu_id: posyandu_id });
@@ -43,8 +47,9 @@ export const createShipmentRequest = async (req: Request, res: Response): Promis
       posyandu_id: posyandu._id,
       hub_id: posyandu.assigned_hub_id,
       patient_details: {
-        initials: patient_initials,
+        name: patient_name,
         age_months,
+        z_score,
         urgency
       },
       status: 'PENDING'
@@ -155,6 +160,22 @@ export const assignDriver = async (req: AuthRequest, res: Response): Promise<voi
     shipment.updated_at = new Date();
 
     await shipment.save();
+
+    // 6. Webhook Trigger: Notify Health Service
+    try {
+        await axios.post(`${HEALTH_URL}/api/internal/shipment-update`, {
+            health_request_id: shipment.health_request_id,
+            driver_name: driver.name,
+            driver_phone: driver.phone,
+            eta: eta
+        }, {
+            headers: { 'x-api-key': SHARED_SECRET }
+        });
+        console.log(`[Webhook] Health service notified for request ${shipment.health_request_id}`);
+    } catch (err: any) {
+        console.error(`[Webhook] Failed to notify Health service: ${err.message}`);
+        // Non-blocking error for client response
+    }
 
     res.json(shipment);
   } catch (error: any) {

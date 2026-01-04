@@ -36,6 +36,11 @@ export const createIntervention = async (req: AuthRequest, res: Response): Promi
     ageMonths -= dob.getMonth();
     ageMonths += now.getMonth();
 
+    // Get latest Z-Score
+    const latestMeasurement = patient.measurements.length > 0 
+      ? patient.measurements[patient.measurements.length - 1] 
+      : null;
+
     // Create unique Request ID
     const requestId = `REQ-${Date.now()}-${patientId.substr(-4)}`;
 
@@ -43,8 +48,9 @@ export const createIntervention = async (req: AuthRequest, res: Response): Promi
     const payload = {
       health_request_id: requestId,
       posyandu_id: posyandu?.posyandu_details ? req.user.id : null, 
-      patient_initials: patient.name.split(' ').map((n: string) => n[0]).join('.'), 
+      patient_name: patient.name, 
       age_months: ageMonths,
+      z_score: latestMeasurement ? latestMeasurement.z_score : 0,
       urgency: urgency || 'HIGH'
     };
 
@@ -120,6 +126,36 @@ export const confirmReceipt = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
+export const cancelIntervention = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const intervention = await Intervention.findOne({ request_id: id });
+    if (!intervention) {
+      res.status(404).json({ message: 'Intervention not found' });
+      return;
+    }
+
+    if (intervention.posyandu_id.toString() !== req.user.id) {
+      res.status(403).json({ message: 'Not authorized' });
+      return;
+    }
+
+    if (intervention.status === 'DELIVERED' || intervention.status === 'CANCELLED') {
+        res.status(400).json({ message: 'Cannot cancel intervention in current status' });
+        return;
+    }
+
+    intervention.status = 'CANCELLED';
+    intervention.updated_at = new Date();
+    await intervention.save();
+
+    res.json({ message: 'Intervention Cancelled' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 export const getInterventionDetailsInternal = async (req: Request, res: Response): Promise<void> => {
   try {
     const { requestId } = req.params;
@@ -158,6 +194,31 @@ export const getInterventionDetailsPublic = async (req: Request, res: Response):
     }
 
     res.json(intervention);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const updateShipmentDetails = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { health_request_id, driver_name, driver_phone, eta } = req.body;
+
+    const intervention = await Intervention.findOne({ request_id: health_request_id });
+    if (!intervention) {
+      res.status(404).json({ message: 'Intervention not found' });
+      return;
+    }
+
+    intervention.driver_name = driver_name;
+    intervention.driver_phone = driver_phone;
+    intervention.eta = eta;
+    intervention.status = 'ON_THE_WAY';
+    intervention.shipped_at = new Date();
+    intervention.updated_at = new Date();
+
+    await intervention.save();
+
+    res.json({ message: 'Shipment details updated successfully' });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

@@ -1,14 +1,29 @@
 "use client"
 
-import { PageHeader } from "@/components/layout/page-header"
+import { useQuery } from "@tanstack/react-query"
 import { StatCard } from "@/components/ui/stat-card"
 import { HubConnectionWidget } from "@/components/dashboard/hub-connection-widget"
 import { RecentMeasurementsTable } from "@/components/dashboard/recent-measurements-table"
-import { mockDashboardStats } from "@/lib/mock-data"
 import { Users, Activity, AlertTriangle, HeartPulse } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
+import api from "@/lib/axios"
 
 export default function DashboardPage() {
-  const stats = mockDashboardStats
+  const { data: stats } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => (await api.get("/dashboard/stats")).data,
+  })
+
+  // Default values to prevent crash if stats are undefined
+  const defaultStats = {
+    total_children: 0,
+    active_interventions: 0,
+    red_zone_count: 0,
+    healthy_count: 0,
+    at_risk_count: 0
+  }
+
+  const safeStats = stats || defaultStats;
 
   return (
     <div>
@@ -17,23 +32,23 @@ export default function DashboardPage() {
       <div className="p-8 space-y-6">
         {/* Stats Row */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Anak" value={stats.total_children} subtitle="Terdaftar di Posyandu" icon={Users} />
+          <StatCard title="Total Anak" value={safeStats.total_children} subtitle="Terdaftar di Posyandu" icon={Users} />
           <StatCard
             title="Intervensi Aktif"
-            value={stats.active_interventions}
+            value={safeStats.active_interventions}
             subtitle="Bantuan dalam proses"
             icon={Activity}
           />
           <StatCard
             title="Red Zone Alert"
-            value={stats.red_zone_count}
+            value={safeStats.red_zone_count}
             subtitle="Butuh penanganan segera"
             icon={AlertTriangle}
             variant="danger"
           />
           <StatCard
             title="Status Normal"
-            value={stats.healthy_count}
+            value={safeStats.healthy_count}
             subtitle="Gizi baik"
             icon={HeartPulse}
             variant="success"
@@ -49,18 +64,12 @@ export default function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <StatCard
               title="Berisiko"
-              value={stats.at_risk_count}
+              value={safeStats.at_risk_count}
               subtitle="Perlu monitoring ketat"
               icon={Activity}
               variant="warning"
             />
-            <StatCard
-              title="Pemeriksaan Bulan Ini"
-              value={12}
-              subtitle="Anak sudah diperiksa"
-              icon={HeartPulse}
-              trend={{ value: 15, positive: true }}
-            />
+            {/* Remove static card for now or fetch real data later */}
           </div>
         </div>
 

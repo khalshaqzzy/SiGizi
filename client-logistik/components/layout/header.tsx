@@ -2,6 +2,7 @@
 
 import { Bell, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/context/auth-context"
 
 interface HeaderProps {
   title: string
@@ -9,6 +10,12 @@ interface HeaderProps {
 }
 
 export function Header({ title, description }: HeaderProps) {
+  const { user } = useAuth();
+
+  const getInitials = (name: string) => {
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'GL';
+  };
+
   return (
     <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur sticky top-0 z-30">
       <div>
@@ -32,11 +39,11 @@ export function Header({ title, description }: HeaderProps) {
         {/* User Avatar */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-            <span className="text-sm font-medium text-emerald-700">GL</span>
+            <span className="text-sm font-medium text-emerald-700">{getInitials(user?.name || "GL")}</span>
           </div>
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-slate-900">Gudang Logistik</p>
-            <p className="text-xs text-slate-500">Jakarta Pusat</p>
+            <p className="text-sm font-medium text-slate-900">{user?.name || "Gudang Logistik"}</p>
+            <p className="text-xs text-slate-500 truncate max-w-[150px]">{user?.address || "Jakarta Pusat"}</p>
           </div>
         </div>
       </div>

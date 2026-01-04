@@ -6,30 +6,96 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockDrivers, mockInventory } from "@/lib/mock-data"
-import type { Shipment, ShipmentItem, InventoryItem } from "@/lib/types"
+import { useQuery } from "@tanstack/react-query"
+import api from "@/lib/axios"
+import type { Shipment, ShipmentItem, InventoryItem, Driver } from "@/lib/types"
 import { toast } from "sonner"
+import { useAuth } from "@/context/auth-context"
+import { useGoogleMaps } from "@/hooks/use-google-maps"
+import { ShipmentRouteMap } from "./shipment-route-map"
+import { useEffect, useMemo } from "react"
 
 interface AssignDriverModalProps {
-  shipment: Shipment
+  shipment: any
   isOpen: boolean
   onClose: () => void
   onAssign: (data: { driverId: string; items: ShipmentItem[]; eta: string }) => void
 }
 
 export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: AssignDriverModalProps) {
+  const { user } = useAuth()
+  const { isLoaded } = useGoogleMaps()
   const [selectedDriver, setSelectedDriver] = useState<string>("")
   const [selectedItems, setSelectedItems] = useState<ShipmentItem[]>([])
-  const [eta, setEta] = useState<string>("15")
-  const [isLoading, setIsLoading] = useState(false)
+  const [eta, setEta] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const availableDrivers = mockDrivers.filter((d) => d.status === "AVAILABLE")
+  const posyandu = shipment.posyandu || shipment.posyandu_id || {}
+  
+  const hubLoc = useMemo(() => {
+    return user?.location?.coordinates 
+      ? { lat: user.location.coordinates[1], lng: user.location.coordinates[0] }
+      : null;
+  }, [user?.location?.coordinates]);
+
+  const posyanduLoc = useMemo(() => {
+    return posyandu.location?.coordinates
+      ? { lat: posyandu.location.coordinates[1], lng: posyandu.location.coordinates[0] }
+      : null;
+  }, [posyandu.location?.coordinates]);
+
+  console.log("[AssignDriverModal] Map Data Check:", {
+    hubLoc,
+    posyanduLoc
+  });
+
+  // Auto-calculate ETA from Google Maps
+  useEffect(() => {
+    if (isLoaded && isOpen && hubLoc && posyanduLoc && typeof google !== 'undefined') {
+      const service = new google.maps.DistanceMatrixService();
+      service.getDistanceMatrix(
+        {
+          origins: [hubLoc],
+          destinations: [posyanduLoc],
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (response, status) => {
+          if (status === "OK" && response && response.rows[0].elements[0].duration) {
+            const durationMinutes = Math.ceil(response.rows[0].elements[0].duration.value / 60);
+            setEta(durationMinutes.toString());
+          } else {
+            console.warn("Distance Matrix failed:", status);
+            // Don't overwrite if user already typed something
+            if (!eta) setEta("15"); 
+          }
+        }
+      );
+    }
+  }, [isLoaded, isOpen, hubLoc, posyanduLoc]);
+
+  // Fetch real drivers
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: async () => (await api.get("/drivers")).data,
+    enabled: isOpen
+  })
+
+  // Fetch real inventory
+  const { data: inventory = [] } = useQuery({
+    queryKey: ["inventory"],
+    queryFn: async () => (await api.get("/inventory")).data,
+    enabled: isOpen
+  })
+
+  const availableDrivers = drivers.filter((d: Driver) => d.status === "AVAILABLE")
 
   const handleAddItem = (item: InventoryItem) => {
     const existing = selectedItems.find((i) => i.sku === item.sku)
     if (existing) {
       if (existing.qty < item.quantity) {
         setSelectedItems((prev) => prev.map((i) => (i.sku === item.sku ? { ...i, qty: i.qty + 1 } : i)))
+      } else {
+        toast.error("Stok tidak mencukupi")
       }
     } else {
       setSelectedItems((prev) => [...prev, { sku: item.sku, name: item.name, qty: 1 }])
@@ -37,7 +103,7 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
   }
 
   const handleUpdateQty = (sku: string, delta: number) => {
-    const item = mockInventory.find((i) => i.sku === sku)
+    const item = inventory.find((i: InventoryItem) => i.sku === sku)
     if (!item) return
 
     setSelectedItems(
@@ -47,7 +113,10 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
             if (i.sku !== sku) return i
             const newQty = i.qty + delta
             if (newQty <= 0) return null
-            if (newQty > item.quantity) return i
+            if (newQty > item.quantity) {
+                toast.error("Stok tidak mencukupi")
+                return i
+            }
             return { ...i, qty: newQty }
           })
           .filter(Boolean) as ShipmentItem[],
@@ -68,21 +137,19 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
       return
     }
 
-    setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    onAssign({
-      driverId: selectedDriver,
-      items: selectedItems,
-      eta: `${eta} menit`,
-    })
-
-    toast.success("Driver berhasil ditugaskan!", {
-      description: `Pengiriman ke ${shipment.posyandu.name}`,
-    })
-
-    setIsLoading(false)
-    onClose()
+    setIsSubmitting(true)
+    try {
+        await onAssign({
+            driverId: selectedDriver,
+            items: selectedItems,
+            eta: `${eta} menit`,
+        })
+        onClose()
+    } catch (e) {
+        // Error handled by mutation
+    } finally {
+        setIsSubmitting(false)
+    }
   }
 
   if (!isOpen) return null
@@ -110,13 +177,18 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
           {/* Destination Info */}
           <div className="p-4 bg-slate-50 rounded-lg">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tujuan Pengiriman</p>
-            <p className="text-sm font-medium text-slate-900">{shipment.posyandu.name}</p>
-            <p className="text-xs text-slate-500 mt-1">{shipment.posyandu.address}</p>
+            <p className="text-sm font-medium text-slate-900">{posyandu.name || "Nama Posyandu -"}</p>
+            <p className="text-xs text-slate-500 mt-1">{posyandu.address || "Alamat -"}</p>
             <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-              <span className="text-emerald-600 font-medium">{shipment.posyandu.distance_km} km</span>
-              <span>~{shipment.posyandu.travel_time_minutes} menit perjalanan</span>
+              <span className="text-emerald-600 font-medium">{posyandu.distance_km || "-"} km</span>
+              <span>~{posyandu.travel_time_minutes || "-"} menit perjalanan</span>
             </div>
           </div>
+
+          {/* Route Map */}
+          {hubLoc && posyanduLoc && (
+            <ShipmentRouteMap origin={hubLoc} destination={posyanduLoc} />
+          )}
 
           {/* Driver Selection */}
           <div className="space-y-2">
@@ -132,8 +204,8 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
                 {availableDrivers.length === 0 ? (
                   <div className="p-4 text-center text-sm text-slate-500">Tidak ada driver tersedia</div>
                 ) : (
-                  availableDrivers.map((driver) => (
-                    <SelectItem key={driver.id} value={driver.id}>
+                  availableDrivers.map((driver: Driver) => (
+                    <SelectItem key={driver.id || (driver as any)._id} value={driver.id || (driver as any)._id}>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{driver.name}</span>
                         <span className="text-slate-400">-</span>
@@ -157,7 +229,7 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
             {selectedItems.length > 0 && (
               <div className="space-y-2 mb-3">
                 {selectedItems.map((item) => {
-                  const inventoryItem = mockInventory.find((i) => i.sku === item.sku)
+                  const inventoryItem = inventory.find((i: InventoryItem) => i.sku === item.sku)
                   return (
                     <div
                       key={item.sku}
@@ -205,12 +277,14 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pilih Item</p>
               </div>
               <div className="max-h-40 overflow-y-auto divide-y divide-slate-100">
-                {mockInventory.map((item) => {
+                {inventory.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-slate-500">Tidak ada stok di gudang</div>
+                ) : inventory.map((item: InventoryItem) => {
                   const isSelected = selectedItems.some((i) => i.sku === item.sku)
                   const isLowStock = item.quantity <= item.min_stock
                   return (
                     <button
-                      key={item.id}
+                      key={item.id || (item as any)._id}
                       type="button"
                       onClick={() => !isSelected && handleAddItem(item)}
                       disabled={isSelected || item.quantity === 0}
@@ -260,10 +334,10 @@ export function AssignDriverModal({ shipment, isOpen, onClose, onAssign }: Assig
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20"
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Memproses...

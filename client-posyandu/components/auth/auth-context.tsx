@@ -1,122 +1,108 @@
-"use client"
+'use client';
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { User, AuthState } from "@/lib/types"
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import Cookies from 'js-cookie';
+import { useRouter, usePathname } from 'next/navigation';
+import api from '@/lib/axios';
+import { toast } from 'sonner';
 
-interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<boolean>
-  register: (data: RegisterData) => Promise<boolean>
-  logout: () => void
-  isLoading: boolean
+interface User {
+  id: string;
+  username: string;
+  role: string;
+  posyandu_details?: {
+    name: string;
+    address: string;
+    location: {
+      type: string;
+      coordinates: number[];
+    };
+  };
 }
 
-interface RegisterData {
-  username: string
-  password: string
-  posyandu_name: string
-  address: string
-  lat: number
-  lng: number
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (token: string, userData: User) => void;
+  logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    token: null,
-    isAuthenticated: false,
-  })
-  const [isLoading, setIsLoading] = useState(true)
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const isAuthenticated = !!user;
 
   useEffect(() => {
-    // Check for existing auth on mount
-    const token = localStorage.getItem("sigizi_token")
-    const userStr = localStorage.getItem("sigizi_user")
-    if (token && userStr) {
+    const initAuth = async () => {
+      const token = Cookies.get('sigizi_posyandu_token');
+      if (!token) {
+        setIsLoading(false);
+        // Only redirect if we are inside dashboard
+        if (pathname.startsWith('/dashboard')) {
+           router.push('/login');
+        }
+        return;
+      }
+
       try {
-        const user = JSON.parse(userStr)
-        setAuthState({ user, token, isAuthenticated: true })
-      } catch {
-        localStorage.removeItem("sigizi_token")
-        localStorage.removeItem("sigizi_user")
+        const storedUser = Cookies.get('sigizi_posyandu_user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Auth init error', error);
+        Cookies.remove('sigizi_posyandu_token');
+        Cookies.remove('sigizi_posyandu_user');
+      } finally {
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false)
-  }, [])
+    };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // Mock login - replace with actual API call
-    if (username && password) {
-      const mockUser: User = {
-        id: "user_001",
-        username,
-        role: "POSYANDU_ADMIN",
-        posyandu_details: {
-          name: "Posyandu Mawar 01",
-          address: "Jl. Kebon Jeruk No 1, Jakarta Barat",
-          location: { lat: -6.2, lng: 106.816 },
-        },
-      }
-      const mockToken = "mock_jwt_token_" + Date.now()
+    initAuth();
+  }, [pathname, router]);
 
-      localStorage.setItem("sigizi_token", mockToken)
-      localStorage.setItem("sigizi_user", JSON.stringify(mockUser))
-
-      setAuthState({
-        user: mockUser,
-        token: mockToken,
-        isAuthenticated: true,
-      })
-      return true
-    }
-    return false
-  }
-
-  const register = async (data: RegisterData): Promise<boolean> => {
-    // Mock register - replace with actual API call
-    const mockUser: User = {
-      id: "user_" + Date.now(),
-      username: data.username,
-      role: "POSYANDU_ADMIN",
-      posyandu_details: {
-        name: data.posyandu_name,
-        address: data.address,
-        location: { lat: data.lat, lng: data.lng },
-      },
-    }
-    const mockToken = "mock_jwt_token_" + Date.now()
-
-    localStorage.setItem("sigizi_token", mockToken)
-    localStorage.setItem("sigizi_user", JSON.stringify(mockUser))
-
-    setAuthState({
-      user: mockUser,
-      token: mockToken,
-      isAuthenticated: true,
-    })
-    return true
-  }
+  const login = (token: string, userData: User) => {
+    Cookies.set('sigizi_posyandu_token', token, { expires: 1 }); // 1 day
+    Cookies.set('sigizi_posyandu_user', JSON.stringify(userData), { expires: 1 });
+    setUser(userData);
+    router.push('/dashboard');
+    toast.success('Login Berhasil');
+  };
 
   const logout = () => {
-    localStorage.removeItem("sigizi_token")
-    localStorage.removeItem("sigizi_user")
-    setAuthState({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-    })
+    Cookies.remove('sigizi_posyandu_token');
+    Cookies.remove('sigizi_posyandu_user');
+    setUser(null);
+    router.push('/login');
+    toast.info('Logged out');
+  };
+
+  const updateUser = (data: Partial<User>) => {
+      if (user) {
+          const newUser = { ...user, ...data };
+          setUser(newUser);
+          Cookies.set('sigizi_posyandu_user', JSON.stringify(newUser), { expires: 1 });
+      }
   }
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, register, logout, isLoading }}>{children}</AuthContext.Provider>
-  )
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }

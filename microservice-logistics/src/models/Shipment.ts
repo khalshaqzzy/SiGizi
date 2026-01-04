@@ -5,8 +5,9 @@ export interface IShipment extends Document {
   posyandu_id: mongoose.Types.ObjectId; // Ref to Shadow Registry
   hub_id: mongoose.Types.ObjectId;
   patient_details: {
-    initials: string;
+    name: string;
     age_months: number;
+    z_score: number;
     urgency: string;
   };
   items: Array<{
@@ -28,8 +29,9 @@ const ShipmentSchema: Schema = new Schema({
   posyandu_id: { type: Schema.Types.ObjectId, ref: 'PosyanduRegistry', required: true },
   hub_id: { type: Schema.Types.ObjectId, ref: 'LogisticsProvider', required: true },
   patient_details: {
-    initials: String,
+    name: String,
     age_months: Number,
+    z_score: Number,
     urgency: String
   },
   items: [{

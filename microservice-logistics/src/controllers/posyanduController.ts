@@ -63,3 +63,20 @@ export const getAssignedPosyandus = async (req: AuthRequest, res: Response): Pro
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+export const getMyHub = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    console.log(`[Logistics] Querying Hub for Posyandu ID: ${req.user.id}`);
+    const posyandu = await PosyanduRegistry.findOne({ health_posyandu_id: req.user.id })
+                                           .populate('assigned_hub_id', 'name address location');
+    
+    if (!posyandu) {
+      res.status(404).json({ message: 'Posyandu not found in logistics registry' });
+      return;
+    }
+
+    res.json(posyandu);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

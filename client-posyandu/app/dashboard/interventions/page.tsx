@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InterventionCard } from "@/components/interventions/intervention-card"
-import { mockInterventions } from "@/lib/mock-data"
 import { Clock, CheckCircle2, Truck, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import type { Intervention } from "@/lib/types"
@@ -19,24 +18,55 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import api from "@/lib/axios"
 
 export default function InterventionsPage() {
-  const [interventions, setInterventions] = useState<Intervention[]>(mockInterventions)
+  const queryClient = useQueryClient()
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [selectedInterventionId, setSelectedInterventionId] = useState<string | null>(null)
 
-  const pendingInterventions = interventions.filter((i) => i.status === "PENDING")
-  const onTheWayInterventions = interventions.filter((i) => i.status === "ON_THE_WAY")
-  const deliveredInterventions = interventions.filter((i) => i.status === "DELIVERED")
-  const cancelledInterventions = interventions.filter((i) => i.status === "CANCELLED")
+  const { data: interventions = [], isLoading } = useQuery({
+    queryKey: ["interventions"],
+    queryFn: async () => (await api.get("/interventions")).data,
+  })
+
+  // Format backend data to frontend model if necessary
+  const formattedInterventions = interventions.map((i: any) => ({
+    ...i,
+    id: i.request_id, // map backend request_id to frontend id
+    patient_name: i.patient_id?.name || "Unknown",
+    // Ensure we use the new fields from backend
+    driver: i.driver_name ? { name: i.driver_name, phone: i.driver_phone } : undefined,
+    eta: i.eta
+  }))
+
+  const pendingInterventions = formattedInterventions.filter((i: any) => i.status === "PENDING")
+  const onTheWayInterventions = formattedInterventions.filter((i: any) => i.status === "ON_THE_WAY")
+  const deliveredInterventions = formattedInterventions.filter((i: any) => i.status === "DELIVERED")
+  const cancelledInterventions = formattedInterventions.filter((i: any) => i.status === "CANCELLED")
+
+  const confirmMutation = useMutation({
+    mutationFn: async (id: string) => api.post("/interventions/confirm", { requestId: id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interventions"] })
+      toast.success("Penerimaan bantuan berhasil dikonfirmasi")
+    },
+    onError: () => toast.error("Gagal konfirmasi")
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) => api.delete(`/interventions/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interventions"] })
+      toast.success("Bantuan berhasil dibatalkan")
+      setCancelDialogOpen(false)
+    },
+    onError: () => toast.error("Gagal membatalkan bantuan")
+  })
 
   const handleConfirmDelivered = (id: string) => {
-    setInterventions((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, status: "DELIVERED" as const, delivered_at: new Date().toISOString() } : i,
-      ),
-    )
-    toast.success("Penerimaan bantuan berhasil dikonfirmasi")
+    confirmMutation.mutate(id)
   }
 
   const handleCancelClick = (id: string) => {
@@ -46,22 +76,8 @@ export default function InterventionsPage() {
 
   const handleConfirmCancel = () => {
     if (selectedInterventionId) {
-      setInterventions((prev) =>
-        prev.map((i) =>
-          i.id === selectedInterventionId
-            ? {
-                ...i,
-                status: "CANCELLED" as const,
-                cancelled_at: new Date().toISOString(),
-                cancelled_by: "POSYANDU" as const,
-              }
-            : i,
-        ),
-      )
-      toast.success("Bantuan berhasil dibatalkan")
+      cancelMutation.mutate(selectedInterventionId)
     }
-    setCancelDialogOpen(false)
-    setSelectedInterventionId(null)
   }
 
   return (
@@ -135,7 +151,9 @@ export default function InterventionsPage() {
           </TabsList>
 
           <TabsContent value="active" className="space-y-4">
-            {pendingInterventions.length === 0 && onTheWayInterventions.length === 0 ? (
+            {isLoading ? (
+               <div className="text-center py-12">Memuat data...</div>
+            ) : pendingInterventions.length === 0 && onTheWayInterventions.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
@@ -149,7 +167,7 @@ export default function InterventionsPage() {
               </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {[...onTheWayInterventions, ...pendingInterventions].map((intervention) => (
+                {[...onTheWayInterventions, ...pendingInterventions].map((intervention: any) => (
                   <InterventionCard
                     key={intervention.id}
                     intervention={intervention}
@@ -176,7 +194,7 @@ export default function InterventionsPage() {
               </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {deliveredInterventions.map((intervention) => (
+                {deliveredInterventions.map((intervention: any) => (
                   <InterventionCard key={intervention.id} intervention={intervention} />
                 ))}
               </div>
@@ -198,7 +216,7 @@ export default function InterventionsPage() {
               </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {cancelledInterventions.map((intervention) => (
+                {cancelledInterventions.map((intervention: any) => (
                   <InterventionCard key={intervention.id} intervention={intervention} />
                 ))}
               </div>

@@ -11,18 +11,16 @@ import { AzureButton } from "@/components/ui/azure-button"
 import { Button } from "@/components/ui/button"
 import { UserPlus, X } from "lucide-react"
 
+export interface PatientFormData {
+  name: string
+  dob: string
+  gender: "MALE" | "FEMALE"
+}
+
 interface PatientFormProps {
   onSubmit: (data: PatientFormData) => void
   onCancel: () => void
   initialData?: PatientFormData
-}
-
-export interface PatientFormData {
-  name: string
-  dob: string
-  gender: "male" | "female"
-  parent_name: string
-  address: string
 }
 
 export function PatientForm({ onSubmit, onCancel, initialData }: PatientFormProps) {
@@ -30,9 +28,7 @@ export function PatientForm({ onSubmit, onCancel, initialData }: PatientFormProp
     initialData || {
       name: "",
       dob: "",
-      gender: "male",
-      parent_name: "",
-      address: "",
+      gender: "MALE",
     },
   )
 
@@ -76,38 +72,19 @@ export function PatientForm({ onSubmit, onCancel, initialData }: PatientFormProp
               <Label htmlFor="gender">Jenis Kelamin</Label>
               <Select
                 value={formData.gender}
-                onValueChange={(v) => setFormData({ ...formData, gender: v as "male" | "female" })}
+                onValueChange={(v) => setFormData({ ...formData, gender: v as "MALE" | "FEMALE" })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Pilih Jenis Kelamin" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="male">Laki-laki</SelectItem>
-                  <SelectItem value="female">Perempuan</SelectItem>
+                  <SelectItem value="MALE">Laki-laki</SelectItem>
+                  <SelectItem value="FEMALE">Perempuan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="parent_name">Nama Orang Tua/Wali</Label>
-              <Input
-                id="parent_name"
-                value={formData.parent_name}
-                onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
-                placeholder="Masukkan nama orang tua"
-                required
-              />
-            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="address">Alamat</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Masukkan alamat lengkap"
-              required
-            />
-          </div>
+          
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>
               <X className="mr-2 h-4 w-4" />

@@ -48,19 +48,19 @@ export default function ShipmentsPage() {
   const counts = useMemo(() => {
     return {
       all: shipments.length,
-      pending: shipments.filter((s: Shipment) => s.status === "PENDING").length,
-      on_the_way: shipments.filter((s: Shipment) => s.status === "ON_THE_WAY").length,
-      delivered: shipments.filter((s: Shipment) => s.status === "DELIVERED").length,
-      cancelled: shipments.filter((s: Shipment) => s.status === "CANCELLED").length,
+      pending: shipments.filter((s: any) => (s.status || "PENDING") === "PENDING").length,
+      on_the_way: shipments.filter((s: any) => s.status === "ON_THE_WAY").length,
+      delivered: shipments.filter((s: any) => s.status === "DELIVERED").length,
+      cancelled: shipments.filter((s: any) => s.status === "CANCELLED").length,
     }
   }, [shipments])
 
   const filteredShipments = useMemo(() => {
     if (activeFilter === "all") return shipments
-    if (activeFilter === "pending") return shipments.filter((s: Shipment) => s.status === "PENDING")
-    if (activeFilter === "on_the_way") return shipments.filter((s: Shipment) => s.status === "ON_THE_WAY")
-    if (activeFilter === "delivered") return shipments.filter((s: Shipment) => s.status === "DELIVERED")
-    if (activeFilter === "cancelled") return shipments.filter((s: Shipment) => s.status === "CANCELLED")
+    if (activeFilter === "pending") return shipments.filter((s: any) => (s.status || "PENDING") === "PENDING")
+    if (activeFilter === "on_the_way") return shipments.filter((s: any) => s.status === "ON_THE_WAY")
+    if (activeFilter === "delivered") return shipments.filter((s: any) => s.status === "DELIVERED")
+    if (activeFilter === "cancelled") return shipments.filter((s: any) => s.status === "CANCELLED")
     return shipments
   }, [shipments, activeFilter])
 

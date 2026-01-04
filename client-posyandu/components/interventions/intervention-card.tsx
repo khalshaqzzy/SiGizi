@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AzureButton } from "@/components/ui/azure-button"
@@ -11,17 +12,46 @@ import type { Intervention } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface InterventionCardProps {
-  intervention: Intervention
+  intervention: any // Using any to accommodate backend response shape
   onConfirmDelivered?: (id: string) => void
   onCancel?: (id: string) => void
 }
 
 export function InterventionCard({ intervention, onConfirmDelivered, onCancel }: InterventionCardProps) {
+  const [liveEta, setLiveEta] = useState(intervention.eta)
   const isOnTheWay = intervention.status === "ON_THE_WAY"
   const isPending = intervention.status === "PENDING"
   const isCancelled = intervention.status === "CANCELLED"
   const isDelivered = intervention.status === "DELIVERED"
   const isHighUrgency = intervention.urgency === "HIGH"
+
+  // Live Countdown Logic
+  useEffect(() => {
+    if (isOnTheWay && intervention.shipped_at && intervention.eta) {
+      const initialMinutes = parseInt(intervention.eta)
+      if (isNaN(initialMinutes)) return
+
+      const arrivalTime = new Date(intervention.shipped_at).getTime() + initialMinutes * 60 * 1000
+
+      const calculate = () => {
+        const now = new Date().getTime()
+        const diffMs = arrivalTime - now
+        const diffMin = Math.ceil(diffMs / 60000)
+
+        if (diffMin <= 0) {
+          setLiveEta("Tiba segera")
+        } else {
+          setLiveEta(`${diffMin} menit lagi`)
+        }
+      }
+
+      calculate()
+      const timer = setInterval(calculate, 30000) // Update every 30s
+      return () => clearInterval(timer)
+    } else {
+      setLiveEta(intervention.eta)
+    }
+  }, [isOnTheWay, intervention.shipped_at, intervention.eta])
 
   const canCancel = !isCancelled && !isDelivered
   const canConfirmDelivered = isOnTheWay
@@ -45,16 +75,11 @@ export function InterventionCard({ intervention, onConfirmDelivered, onCancel }:
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
               <Package className="h-5 w-5 text-primary" />
+              <span className="text-muted-foreground font-normal">Anak: </span>
               {intervention.patient_name}
             </CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              ID: {intervention.id} • Usia: {intervention.age_months} bulan
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Z-Score</p>
-            <p className={cn("font-mono font-bold", intervention.z_score < -3 ? "text-red-600" : "text-amber-600")}>
-              {intervention.z_score.toFixed(2)}
+            <p className="mt-1 text-[10px] font-mono text-muted-foreground">
+              REQ-ID: {intervention.id}
             </p>
           </div>
         </div>
@@ -63,25 +88,16 @@ export function InterventionCard({ intervention, onConfirmDelivered, onCancel }:
         {/* Status Stepper */}
         <InterventionStatusStepper currentStatus={intervention.status} />
 
-        {/* Items List */}
-        {intervention.items && intervention.items.length > 0 && (
-          <div className="rounded-lg border bg-card p-3">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Barang yang Dikirim:</p>
-            <div className="space-y-1">
-              {intervention.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span>{item.name}</span>
-                  <span className="font-mono text-muted-foreground">
-                    {item.qty} {item.unit}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Shipment Details */}
+        {intervention.shipped_at && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-slate-50 p-2 rounded border border-slate-100">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Dikirim pada: {format(new Date(intervention.shipped_at), "HH:mm", { locale: id })}</span>
           </div>
         )}
 
-        {/* Driver Info - only show when ON_THE_WAY */}
-        {intervention.driver && isOnTheWay && (
+        {/* Driver Info */}
+        {intervention.driver && (isOnTheWay || isDelivered) && (
           <div className="flex items-center justify-between rounded-lg border bg-emerald-50 p-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
@@ -89,45 +105,40 @@ export function InterventionCard({ intervention, onConfirmDelivered, onCancel }:
               </div>
               <div>
                 <p className="text-sm font-medium">{intervention.driver.name}</p>
-                <p className="text-xs text-muted-foreground">Driver</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1 rounded font-bold uppercase tracking-tighter">Driver</span>
+                  {isOnTheWay && (
+                    <span className="text-[10px] text-emerald-700 font-semibold animate-pulse">
+                      ~{liveEta}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              <Phone className="h-4 w-4" />
-              {intervention.driver.phone}
+            <Button variant="outline" size="sm" className="gap-2 bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-100 shadow-none h-8" asChild>
+              <a href={`tel:${intervention.driver.phone}`}>
+                <Phone className="h-3.5 w-3.5" />
+                Hubungi
+              </a>
             </Button>
           </div>
         )}
 
-        {/* ETA - only show when ON_THE_WAY */}
-        {intervention.eta && isOnTheWay && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>Estimasi tiba: {intervention.eta}</span>
-          </div>
-        )}
-
         {/* Cancelled Info */}
-        {isCancelled && intervention.cancelled_at && (
+        {isCancelled && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm">
             <p className="text-red-700">
-              Dibatalkan oleh: {intervention.cancelled_by === "POSYANDU" ? "Posyandu" : "Logistik"}
-            </p>
-            <p className="text-red-600 text-xs mt-1">
-              {format(new Date(intervention.cancelled_at), "d MMMM yyyy, HH:mm", { locale: id })}
+              Dibatalkan
             </p>
           </div>
         )}
 
         {/* Delivered Info */}
-        {isDelivered && intervention.delivered_at && (
+        {isDelivered && (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
             <p className="text-emerald-700 font-medium flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
               Bantuan Telah Diterima
-            </p>
-            <p className="text-emerald-600 text-xs mt-1">
-              {format(new Date(intervention.delivered_at), "d MMMM yyyy, HH:mm", { locale: id })}
             </p>
           </div>
         )}

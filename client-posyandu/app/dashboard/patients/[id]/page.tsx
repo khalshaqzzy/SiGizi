@@ -10,28 +10,40 @@ import { AzureButton } from "@/components/ui/azure-button"
 import { HealthBadge } from "@/components/ui/health-badge"
 import { ZScoreGauge } from "@/components/patients/z-score-gauge"
 import { GrowthHistoryChart } from "@/components/patients/growth-history-chart"
-import { mockPatients, mockMeasurementHistory, calculateAgeInMonths } from "@/lib/mock-data"
 import { ArrowLeft, Ruler, User, Calendar, MapPin, Phone } from "lucide-react"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { useQuery } from "@tanstack/react-query"
+import api from "@/lib/axios"
+import { calculateAgeInMonths } from "@/lib/utils"
 
 export default function PatientDetailPage() {
   const params = useParams()
   const patientId = params.id as string
   const router = useRouter()
 
-  const patient = mockPatients.find((p) => p.id === patientId)
+  const { data: patient, isLoading } = useQuery({
+    queryKey: ["patient", patientId],
+    queryFn: async () => (await api.get(`/patients/${patientId}`)).data,
+  })
 
-  if (!patient) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Pasien tidak ditemukan</p>
-      </div>
-    )
-  }
+  if (isLoading) return <div className="p-8 text-center">Memuat profil...</div>
+  if (!patient) return <div className="p-8 text-center">Pasien tidak ditemukan</div>
 
   const ageMonths = calculateAgeInMonths(patient.dob)
-  const latestMeasurement = patient.latest_measurement
+  // Backend returns array of measurements, take the last one
+  const latestMeasurement = patient.measurements?.length > 0 
+    ? patient.measurements[patient.measurements.length - 1] 
+    : null
+
+  // Format measurement history for charts
+  const measurementHistory = patient.measurements?.map((m: any) => ({
+    date: m.date,
+    weight: m.weight,
+    height: m.height,
+    z_score: m.z_score,
+    age_months: calculateAgeInMonths(patient.dob) // approximate for graph
+  })) || []
 
   return (
     <div>
@@ -42,7 +54,7 @@ export default function PatientDetailPage() {
             Kembali
           </Button>
           <AzureButton asChild>
-            <Link href={`/dashboard/patients/${patient.id}/measure`}>
+            <Link href={`/dashboard/patients/${patient._id}/measure`}>
               <Ruler className="mr-2 h-4 w-4" />
               Input Pengukuran
             </Link>
@@ -68,7 +80,7 @@ export default function PatientDetailPage() {
                 <div>
                   <h3 className="font-semibold text-lg">{patient.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {patient.gender === "male" ? "Laki-laki" : "Perempuan"}
+                    {patient.gender === "MALE" ? "Laki-laki" : "Perempuan"}
                   </p>
                 </div>
               </div>
@@ -88,18 +100,19 @@ export default function PatientDetailPage() {
                     <p className="font-medium">{ageMonths} bulan</p>
                   </div>
                 </div>
+                {/* Note: Parent info not yet in backend model, placeholder */}
                 <div className="flex items-center gap-3 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-muted-foreground">Orang Tua/Wali</p>
-                    <p className="font-medium">{patient.parent_name}</p>
+                    <p className="font-medium">-</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-muted-foreground">Alamat</p>
-                    <p className="font-medium">{patient.address}</p>
+                    <p className="font-medium">-</p>
                   </div>
                 </div>
               </div>
@@ -146,7 +159,7 @@ export default function PatientDetailPage() {
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">Belum ada data pengukuran</p>
                   <AzureButton className="mt-4" asChild>
-                    <Link href={`/dashboard/patients/${patient.id}/measure`}>
+                    <Link href={`/dashboard/patients/${patient._id}/measure`}>
                       <Ruler className="mr-2 h-4 w-4" />
                       Input Pengukuran Pertama
                     </Link>
@@ -158,15 +171,15 @@ export default function PatientDetailPage() {
         </div>
 
         {/* Growth Charts */}
-        {latestMeasurement && (
+        {measurementHistory.length > 0 && (
           <div className="grid gap-6 lg:grid-cols-2">
-            <GrowthHistoryChart data={mockMeasurementHistory} metric="weight" />
-            <GrowthHistoryChart data={mockMeasurementHistory} metric="height" />
+            <GrowthHistoryChart data={measurementHistory} metric="weight" />
+            <GrowthHistoryChart data={measurementHistory} metric="height" />
           </div>
         )}
 
         {/* Z-Score History */}
-        {latestMeasurement && <GrowthHistoryChart data={mockMeasurementHistory} metric="z_score" />}
+        {measurementHistory.length > 0 && <GrowthHistoryChart data={measurementHistory} metric="z_score" />}
       </div>
     </div>
   )

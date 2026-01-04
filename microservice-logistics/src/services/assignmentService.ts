@@ -94,11 +94,15 @@ export const assignNearestHub = async (posyanduId: string) => {
 
         // Step 3: Update Assignment
         if (bestProvider) {
-            if (String(posyandu.assigned_hub_id) !== String(bestProvider._id)) {
-                posyandu.assigned_hub_id = bestProvider._id as any;
-                await posyandu.save();
-                console.log(`Assigned Hub ${bestProvider.name} to Posyandu ${posyandu.name} (Duration: ${minTime}s)`);
-            }
+            const distanceKm = parseFloat((minTime / 60 / 2).toFixed(1)); // Simple fallback if distance not in element
+            const durationMin = Math.round(minTime / 60);
+
+            posyandu.assigned_hub_id = bestProvider._id as any;
+            posyandu.distance_km = distanceKm; // Note: In real app, get this from element.distance.value
+            posyandu.travel_time_minutes = durationMin;
+            
+            await posyandu.save();
+            console.log(`Assigned Hub ${bestProvider.name} to Posyandu ${posyandu.name} (Duration: ${durationMin} min)`);
         }
 
     } catch (error) {
