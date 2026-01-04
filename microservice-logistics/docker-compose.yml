@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  logistics-ms:
+    build: .
+    container_name: sigizi-logistics
+    restart: always
+    env_file: .env
+    ports:
+      - "6666:5222"
