@@ -140,3 +140,25 @@ export const getInterventionDetailsInternal = async (req: Request, res: Response
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+export const getInterventionDetailsPublic = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { requestId } = req.params;
+
+    // This is accessed by Logistics Service (via Client)
+    const intervention = await Intervention.findOne({ request_id: requestId })
+      .populate({
+        path: 'patient_id',
+        select: 'name dob gender measurements'
+      });
+
+    if (!intervention) {
+      res.status(404).json({ message: 'Intervention not found' });
+      return;
+    }
+
+    res.json(intervention);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

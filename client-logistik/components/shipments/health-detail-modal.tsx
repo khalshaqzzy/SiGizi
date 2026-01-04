@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { X, Activity, Ruler, Weight, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useQuery } from "@tanstack/react-query"
-import api from "@/lib/axios"
+import axios from "axios"
+import Cookies from "js-cookie"
 import {
   ChartContainer,
   ChartTooltip,
@@ -13,19 +14,25 @@ import {
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 
 interface HealthDetailModalProps {
-  shipmentId: string
+  healthRequestId: string
   isOpen: boolean
   onClose: () => void
 }
 
-export function HealthDetailModal({ shipmentId, isOpen, onClose }: HealthDetailModalProps) {
+export function HealthDetailModal({ healthRequestId, isOpen, onClose }: HealthDetailModalProps) {
   const { data: healthData, isLoading, error } = useQuery({
-    queryKey: ["health-data", shipmentId],
+    queryKey: ["health-data", healthRequestId],
     queryFn: async () => {
-      const res = await api.get(`/shipments/${shipmentId}/health-data`)
+      const token = Cookies.get("token")
+      const baseURL = process.env.NEXT_PUBLIC_HEALTH_API_URL || "http://localhost:5001/api"
+      const res = await axios.get(`${baseURL}/interventions/public/${healthRequestId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
       return res.data
     },
-    enabled: isOpen && !!shipmentId,
+    enabled: isOpen && !!healthRequestId,
   })
 
   if (!isOpen) return null

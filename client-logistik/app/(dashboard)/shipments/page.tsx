@@ -21,7 +21,7 @@ export default function ShipmentsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all")
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [viewHealthShipment, setViewHealthShipment] = useState<string | null>(null)
+  const [viewHealthRequestId, setViewHealthRequestId] = useState<string | null>(null)
 
   const { data: shipments = [], isLoading } = useQuery({
     queryKey: ["shipments"],
@@ -99,7 +99,7 @@ export default function ShipmentsPage() {
                 key={shipment.id || (shipment as any)._id} 
                 shipment={shipment} 
                 onAssign={handleAssign} 
-                onViewDetails={(s) => setViewHealthShipment(s.id || (s as any)._id)}
+                onViewDetails={(s) => setViewHealthRequestId(s.health_request_id)}
               />
             ))}
           </div>
@@ -115,11 +115,11 @@ export default function ShipmentsPage() {
         />
       )}
 
-      {viewHealthShipment && (
+      {viewHealthRequestId && (
         <HealthDetailModal 
-          shipmentId={viewHealthShipment}
-          isOpen={!!viewHealthShipment}
-          onClose={() => setViewHealthShipment(null)}
+          healthRequestId={viewHealthRequestId}
+          isOpen={!!viewHealthRequestId}
+          onClose={() => setViewHealthRequestId(null)}
         />
       )}
     </DashboardLayout>
