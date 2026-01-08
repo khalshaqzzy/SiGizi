@@ -98,7 +98,7 @@ export const assignNearestHub = async (posyanduId: string) => {
             const durationMin = Math.round(minTime / 60);
 
             posyandu.assigned_hub_id = bestProvider._id as any;
-            posyandu.distance_km = distanceKm; // Note: In real app, get this from element.distance.value
+            posyandu.distance_km = distanceKm;
             posyandu.travel_time_minutes = durationMin;
             
             await posyandu.save();

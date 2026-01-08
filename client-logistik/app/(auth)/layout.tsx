@@ -35,14 +35,11 @@ export default function AuthLayout({
         <div className="relative z-10">
           <div className="flex gap-8 items-center">
             <div>
-              <p className="text-white font-bold text-2xl">100+</p>
-              <p className="text-slate-500 text-sm">Hub Terintegrasi</p>
+              <p className="text-white font-bold text-2xl">24/7</p>
+              <p className="text-slate-500 text-sm">Monitoring Real-Time</p>
             </div>
             <div className="w-px h-8 bg-slate-800" />
-            <div>
-              <p className="text-white font-bold text-2xl">24/7</p>
-              <p className="text-slate-500 text-sm">Monitoring Real-time</p>
-            </div>
+
           </div>
         </div>
       </div>

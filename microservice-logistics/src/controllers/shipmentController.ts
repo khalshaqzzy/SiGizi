@@ -174,7 +174,6 @@ export const assignDriver = async (req: AuthRequest, res: Response): Promise<voi
         console.log(`[Webhook] Health service notified for request ${shipment.health_request_id}`);
     } catch (err: any) {
         console.error(`[Webhook] Failed to notify Health service: ${err.message}`);
-        // Non-blocking error for client response
     }
 
     res.json(shipment);

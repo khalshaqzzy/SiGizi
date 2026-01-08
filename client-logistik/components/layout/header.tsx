@@ -43,7 +43,7 @@ export function Header({ title, description }: HeaderProps) {
           </div>
           <div className="hidden md:block">
             <p className="text-sm font-medium text-slate-900">{user?.name || "Gudang Logistik"}</p>
-            <p className="text-xs text-slate-500 truncate max-w-[150px]">{user?.address || "Jakarta Pusat"}</p>
+            <p className="text-xs text-slate-500 truncate max-w-[150px]">{"Hub Logistik"}</p>
           </div>
         </div>
       </div>
