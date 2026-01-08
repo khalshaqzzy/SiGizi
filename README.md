@@ -1,6 +1,6 @@
 # UAS II3160 Teknologi Sistem Terintegrasi (TST) - SiGizi
 
-## Identitas Pengembang
+## Identitas
 <p align="left">
   <img src="assets/Khalfani-Shaquille_Photograph.jpg" alt="M Khalfani Shaquille" width="200" />
 </p>
